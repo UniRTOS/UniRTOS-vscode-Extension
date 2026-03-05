@@ -1,0 +1,54 @@
+{
+  "name": "unirtos",
+  "displayName": "UniRTOS",
+  "icon": "images/icon.png",
+  "publisher": "hassan.mallah",
+  "version": "0.0.1",
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p ."
+  },
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "activationEvents": [
+    "onView:unirtos.commands",
+    "onCommand:unirtos.refreshCommands",
+    "onCommand:unirtos.runCommand"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "unirtos",
+          "title": "UniRTOS",
+          "icon": "images/icon.png"
+        }
+      ]
+    },
+    "views": {
+      "unirtos": [
+        {
+          "id": "unirtos.commands",
+          "name": "Commands"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "unirtos.refreshCommands",
+        "title": "Refresh Commands"
+      },
+      {
+        "command": "unirtos.runCommand",
+        "title": "Run Command"
+      }
+    ]
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "@types/node": "^18.0.0",
+    "vscode": "^1.1.37"
+  }
+}
