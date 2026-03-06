@@ -1,5 +1,5 @@
 {
-	"eigen_718": [
-		"EG800ZCN_LA"
-	]
+	"eigen_718": {
+		"EG800ZCN_LA": "https://github.com/UniRTOS/unirtos_network_demos.git"
+	}
 }
