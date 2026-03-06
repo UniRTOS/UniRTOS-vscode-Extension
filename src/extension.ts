@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { CommandsViewProvider, CommandItem } from './views/commandsView';
-import { registerRunCommand } from './commands/runCommand';
+import { registerCommandHandlers } from './commands/commandHandlers';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new CommandsViewProvider();
@@ -9,7 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(vscode.commands.registerCommand('unirtos.refreshCommands', () => provider.refresh()));
 
-  registerRunCommand(context, treeView as any);
+  registerCommandHandlers(context, treeView as any);
 }
 
 export function deactivate() {}

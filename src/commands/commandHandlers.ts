@@ -3,8 +3,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { CommandItem } from '../views/commandsView';
+import { showGuide } from './guideView';
 
-export function registerRunCommand(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
+export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
   // load platforms JSON
   const platformFile = path.join(context.extensionPath, 'src', 'data', 'platform.json');
   let platforms: Record<string, any> = {};
@@ -19,6 +20,12 @@ export function registerRunCommand(context: vscode.ExtensionContext, treeView: v
     (async () => {
       const selection = Array.isArray(item) ? item : (item ? [item] : treeView.selection);
       const labelsArr: string[] = (selection || []).map((s: CommandItem) => s.label);
+      // handle guide view selection
+      if (labelsArr.includes('Guide - How to')) {
+        showGuide(context);
+        return;
+      }
+
       if (await handleNewProject(labelsArr, platforms)) {
         return;
       }
