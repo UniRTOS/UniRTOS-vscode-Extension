@@ -28,6 +28,7 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
     const items = [
       new CommandItem('Guide - How to'),
       new CommandItem('New Project'),
+      new CommandItem('Check Requirements'),
       new CommandItem('Open Project'),
       new CommandItem('Build Firmware')
     ];

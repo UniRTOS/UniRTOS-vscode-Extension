@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Check Requirements</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial; padding: 20px; color: #222 }
+    h1 { color: #0066cc }
+    ul { line-height: 1.6 }
+    .ok { color: green }
+    .bad { color: red }
+  </style>
+</head>
+<body>
+  <h1>UniRTOS — Requirements Check</h1>
+  <p>This page lists common tools the extension may need.</p>
+  <ul>
+    <li id="git">Git: <span class="unknown">Unknown</span></li>
+    <li id="node">Node.js: <span class="unknown">Unknown</span></li>
+    <li id="make">Make: <span class="unknown">Unknown</span></li>
+    <li id="unirtos">unirtos: <span class="unknown">Unknown</span></li>
+    <li id="unirtos_sdk">Current folder: <span class="unknown">Unknown</span></li>
+  </ul>
+  <p>These checks are best-effort; run them locally if needed.</p>
+  <script>
+    // The extension can post messages to update statuses if desired
+    window.addEventListener('message', event => {
+      const m = event.data || {};
+      if (m.type === 'status') {
+        const el = document.getElementById(m.id);
+        if (el) el.innerHTML = m.value;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { CommandItem } from '../views/commandsView';
 import { showGuide } from './guideView';
+import { showCheckRequirements } from './checkView';
 import { handleNewProject } from './newProject';
 
 export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
@@ -14,6 +15,9 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
       switch (primary) {
         case 'Guide - How to':
           showGuide(context);
+          return;
+        case 'Check Requirements':
+          showCheckRequirements(context);
           return;
         case 'New Project':
           await handleNewProject(labelsArr, context);
