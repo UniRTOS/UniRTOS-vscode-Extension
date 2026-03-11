@@ -32,6 +32,30 @@ function checkWorkspaceForSdk(context: vscode.ExtensionContext, post: (id: strin
   }
 }
 
+function checkPython3(post: (id: string, value: string) => void) {
+  try {
+    let pyOut = '';
+    try {
+      pyOut = require('child_process').execSync('python3 --version', { stdio: 'pipe' }).toString().trim();
+    } catch (e) {
+      pyOut = require('child_process').execSync('python --version', { stdio: 'pipe' }).toString().trim();
+    }
+    const found = pyOut.match(/Python\s+(\d+)\.(\d+)(?:\.(\d+))?/i);
+    if (found) {
+      const major = parseInt(found[1], 10);
+      if (major >= 3) {
+        post('python', `Python3 or higher: <span class="ok">Yes</span> — ${pyOut}`);
+      } else {
+        post('python', `Python3 or higher: <span class="bad">No</span> — ${pyOut} (requires Python 3+)`);
+      }
+    } else {
+      post('python', `Python3 or higher: <span class="bad">No</span> — unexpected version output: ${pyOut}`);
+    }
+  } catch (e) {
+    post('python', `Python3 or higher: <span class="bad">Not found</span> — install from <a href="https://www.python.org/downloads/">python.org</a>`);
+  }
+}
+
 export function showCheckRequirements(context: vscode.ExtensionContext) {
   const panel = vscode.window.createWebviewPanel(
     'unirtosCheckRequirements',
@@ -79,8 +103,8 @@ export function showCheckRequirements(context: vscode.ExtensionContext) {
     post('unirtos', `UniRTOS compiler tool: <span class="bad">Not found</span>  — insure you installed all requirments here <a href="https://github.com/UniRTOS/unirtos">requirments</a>`);
   }
 
-  // check if current workspace folder looks like an UniRTOS SDK
-  checkWorkspaceForSdk(context, post);
+  checkWorkspaceForSdk(context, post); // check if current workspace is UniRTOS SDK
+  checkPython3(post); // python check
 }
 
 export default showCheckRequirements;

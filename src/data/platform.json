@@ -1,5 +1,41 @@
 {
+	"asr_1903SR": {
+		"RG255GCN_AA": "https://github.com/UniRTOS/unirtos_network_demos.git"
+	},
+
+	"eigen": {
+		"EC600ECN_LC": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EC800ECN_LC": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EC800ECN_LC_WDF": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EC600ECN_LC_AEF": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EC800ECN_LC_AEF": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EC800ECN_LC_AUD": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EC600ECN_LC_AUD": "https://github.com/UniRTOS/unirtos_network_demos.git"
+	},
+
 	"eigen_718": {
-		"EG800ZCN_LA": "https://github.com/UniRTOS/unirtos_network_demos.git"
+		"EG800ZEU_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EG800ZCN_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EC800ZCN_LF": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EC800ZCN_MF": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EG800ZLA_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EG800ZGL_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EG800ZCN_LG": "https://github.com/UniRTOS/unirtos_network_demos.git"
+	},
+
+	"rda_8910_R05": {
+		"EC600UCN_LB": "https://github.com/UniRTOS/unirtos_network_demos.git"
+	},
+
+	"qcx217": {
+		"EG915LAF_LP": "https://github.com/UniRTOS/unirtos_network_demos.git"
+	},
+
+	"Linux": {
+		"ubuntu": "https://github.com/UniRTOS/unirtos_network_demos.git"
+	},
+	
+	"uis8852": {
+		"EC800UGCN_90LD": "https://github.com/UniRTOS/unirtos_network_demos.git"
 	}
 }
