@@ -11,32 +11,24 @@ function checkWorkspaceForSdk(context: vscode.ExtensionContext, post: (id: strin
     }
 
     const wf = folders[0].uri.fsPath;
-    let detectedBy = '';
+    // Only check that a workspace is open (handled above) and that the
+    // root contains either CMakeLists.txt or buildlib_quecos.bat.
+    let hasCMake = false;
+    let hasBatch = false;
     try {
-      if (fs.existsSync(path.join(wf, 'unirtos.json'))) detectedBy = 'unirtos.json';
-      else if (fs.existsSync(path.join(wf, 'unirtos.sdk'))) detectedBy = 'unirtos.sdk';
-      else if (fs.existsSync(path.join(wf, 'sdk')) && fs.statSync(path.join(wf, 'sdk')).isDirectory()) detectedBy = 'sdk/ folder';
-      else if (fs.existsSync(path.join(wf, 'Makefile'))) {
-        const readmePath = path.join(wf, 'README.md');
-        if (fs.existsSync(readmePath)) {
-          const readme = fs.readFileSync(readmePath, 'utf8');
-          if (/unirtos/i.test(readme)) detectedBy = 'Makefile + README mention';
-          else detectedBy = 'Makefile present';
-        } else {
-          detectedBy = 'Makefile present';
-        }
-      }
+      hasCMake = fs.existsSync(path.join(wf, 'CMakeLists.txt'));
+      hasBatch = fs.existsSync(path.join(wf, 'buildlib_quecos.bat'));
     } catch (err) {
       // ignore read errors
     }
 
-    if (detectedBy) {
-      post('unirtos_sdk', `Current folder: <span class="ok">${wf}</span> — detected as UniRTOS SDK (${detectedBy})`);
+    if (hasCMake || hasBatch) {
+      post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="ok">Yes</span>`);
     } else {
-      post('unirtos_sdk', `Current folder: <span class="bad">${wf}</span> — Not detected as UniRTOS SDK (no unirtos.json, sdk/, or README mention)`);
+      post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="bad">No</span> — Not detected as UniRTOS project`);
     }
   } catch (e) {
-    post('unirtos_sdk', `Current folder: <span class="bad">Check failed</span>`);
+    post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="bad">Check failed</span>`);
   }
 }
 
@@ -68,25 +60,9 @@ export function showCheckRequirements(context: vscode.ExtensionContext) {
   // Basic checks using environment - best effort
   try {
     const git = require('child_process').execSync('git --version').toString().trim();
-    post('git', `Git: <span class="ok">${git}</span> <small>(checked with 'git --version')</small>`);
+    post('git', `Git: <span class="ok">${git}</span>`);
   } catch (e) {
     post('git', `Git: <span class="bad">Not found</span> — install from <a href="https://git-scm.com/downloads">git-scm.com</a>`);
-  }
-
-  try {
-    const node = process.version;
-    let nodeMsg = `Node.js: <span class="ok">${node}</span>`;
-    nodeMsg += ` <small>(checked via process.version)</small>`;
-    post('node', nodeMsg);
-  } catch (e) {
-    post('node', `Node.js: <span class="bad">Not found</span> — install from <a href="https://nodejs.org/">nodejs.org</a>`);
-  }
-
-  try {
-    const make = require('child_process').execSync('make --version').toString().split('\n')[0];
-    post('make', `Make: <span class="ok">${make}</span> <small>(checked with 'make --version')</small>`);
-  } catch (e) {
-    post('make', `Make: <span class="bad">Not found</span> — install GNU Make (or build tools) for your platform`);
   }
 
   // check for unirtos.exe (Windows) or unirtos (unix)
@@ -98,9 +74,9 @@ export function showCheckRequirements(context: vscode.ExtensionContext) {
       // fallback to `unirtos` without .exe
       out = require('child_process').execSync('unirtos --version', { stdio: 'pipe' }).toString().trim();
     }
-    post('unirtos', `unirtos: <span class="ok">${out}</span> <small>(checked with 'unirtos.exe --version' or 'unirtos --version')</small>`);
+    post('unirtos', `UniRTOS compiler tool: <span class="ok">${out}</span>`);
   } catch (e) {
-    post('unirtos', `unirtos: <span class="bad">Not found</span> — ensure 'unirtos' is installed and on your PATH; try installing from your distro or put the binary in PATH (checked with 'unirtos.exe --version')`);
+    post('unirtos', `UniRTOS compiler tool: <span class="bad">Not found</span>  — insure you installed all requirments here <a href="https://github.com/UniRTOS/unirtos">requirments</a>`);
   }
 
   // check if current workspace folder looks like an UniRTOS SDK
