@@ -3,6 +3,7 @@ import { CommandItem } from '../views/commandsView';
 import { showGuide } from './guideView';
 import { showCheckRequirements } from './checkView';
 import { handleNewProject } from './newProject';
+import { showNewProjectDemo } from './newProjectDemo';
 
 export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
 
@@ -21,6 +22,9 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
           return;
         case 'New Project':
           await handleNewProject(labelsArr, context);
+          return;
+        case 'New Project From Demo':
+          showNewProjectDemo(context);
           return;
         default:
           const labels = labelsArr.join(', ');
