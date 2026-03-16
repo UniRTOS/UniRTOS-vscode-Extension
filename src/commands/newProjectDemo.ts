@@ -47,6 +47,54 @@ export function showNewProjectDemo(context: vscode.ExtensionContext) {
   panel.webview.onDidReceiveMessage((message) => handleCreateDemoMessage(message, context));
 }
 
+function removeUnirtosPrefix(dest: string, workspaceRoot: string, id: string): string {
+  let finalDest = dest;
+  try {
+    const prefix = 'unirtos_';
+    if (id && id.startsWith(prefix)) {
+      const newId = id.substring(prefix.length);
+      const newDest = path.join(workspaceRoot, 'qos_applications', 'apps', newId);
+      if (newDest !== dest) {
+        if (fs.existsSync(newDest)) {
+          vscode.window.showWarningMessage(
+            `Cannot rename cloned folder to '${newId}' because that destination already exists. Keeping original name.`
+          );
+        } else {
+          fs.renameSync(dest, newDest);
+          finalDest = newDest;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to rename cloned folder:', e);
+  }
+  return finalDest;
+}
+
+/**
+ * Append `text` to the bottom of `targetPath` if `uniqueCheck` isn't already present.
+ * Creates parent directories and the file when needed.
+ * Returns true if text was added, false if it already existed or on error.
+ */
+function appendTextToFileBottomIfMissing(targetPath: string, text: string, uniqueCheck?: string): boolean {
+  try {
+    const check = uniqueCheck || text;
+    if (fs.existsSync(targetPath)) {
+      const cur = fs.readFileSync(targetPath, 'utf8');
+      if (cur.includes(check)) {
+        return false;
+      }
+      fs.writeFileSync(targetPath, cur + '\n' + text, 'utf8');
+    } else {
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('Failed to append text to file:', e);
+    return false;
+  }
+}
+
 async function handleCreateDemoMessage(message: any, context: vscode.ExtensionContext) {
   if (!message || message.type !== 'createDemo') {
     return;
@@ -77,9 +125,16 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       return;
     }
 
-    // Destination: <workspaceRoot>/qos_applications/apps/<id>
-    const dest = path.join(workspaceRoot, 'qos_applications', 'apps', id);
 
+    // check workspace + sdk folder
+    let dest = path.join(workspaceRoot, 'qos_applications', 'apps');
+    if (!fs.existsSync(dest)) {
+      vscode.window.showErrorMessage('SDK folder does not exist.');
+      return;
+    }
+
+    // Destination: <workspaceRoot>/qos_applications/apps/<id>
+    dest = path.join(workspaceRoot, 'qos_applications', 'apps', id);
     if (fs.existsSync(dest)) {
       const choice = await vscode.window.showWarningMessage(
         `Destination ${dest} already exists. Overwrite?`,
@@ -98,8 +153,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       }
     }
 
-    // Ensure parent exists
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
 
     await vscode.window.withProgress({
       location: vscode.ProgressLocation.Notification,
@@ -118,30 +171,27 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       });
     });
 
-    // Attempt to remove the `unirtos_` prefix from the folder name
-    let finalDest = dest;
-    try {
-      const prefix = 'unirtos_';
-      if (id && id.startsWith(prefix)) {
-        const newId = id.substring(prefix.length);
-        const newDest = path.join(workspaceRoot, 'qos_applications', 'apps', newId);
-        if (newDest !== dest) {
-          if (fs.existsSync(newDest)) {
-            vscode.window.showWarningMessage(
-              `Cannot rename cloned folder to '${newId}' because that destination already exists. Keeping original name.`
-            );
-          } else {
-            fs.renameSync(dest, newDest);
-            finalDest = newDest;
-          }
-        }
-      }
-    } catch (e) {
-      // Non-fatal: continue and report the original destination
-      console.warn('Failed to rename cloned folder:', e);
+    const finalDest = removeUnirtosPrefix(dest, workspaceRoot, id);
+
+    if (finalDest == dest){
+      return;
     }
 
     vscode.window.showInformationMessage(`Cloned demo project '${id}' to ${finalDest}`);
+
+    // Update qos_applications/apps/Kconfig: append config block at bottom if not present
+    try {
+      let folderPath = path.join(workspaceRoot, 'qos_applications', 'apps', 'Kconfig');
+      let block = `\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool "Enable hello world demo"\n    default n\n`;
+      let added = appendTextToFileBottomIfMissing(folderPath, block, 'config QAPP_HELLO_WORLD_DEMO_FUNC');
+      if (!added) {
+        vscode.window.showWarningMessage('Failed to update config block.');
+        return;
+      }
+    } catch (e) {
+      vscode.window.showWarningMessage('Failed to update config block.');
+      console.warn('Failed to update Kconfig:', e);
+    }
 
     if (addToSdk) {
       // Placeholder: user requested add to SDK — extension can react here.
