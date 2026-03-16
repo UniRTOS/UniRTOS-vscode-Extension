@@ -9,19 +9,23 @@
     /* Header styles moved to src/webview/header.html for reuse */
     h1 { color: #0066cc }
     button { padding:8px 12px; margin-top:10px }
+    /* Make the SDK checkbox more visible with a border */
+    p#add-to-sdk-container { outline: 2px solid #ccc; outline-offset: 2px; border-radius: 3px; }
   </style>
 </head>
 <body>
   <div id="header-root"></div>
   <h1>New Project — Demo</h1>
-  <p>This is a demo webview for creating a new project. Replace with your actual UI.</p>
+  
   <label for="demo-projects">Choose demo project:</label>
   <select id="demo-projects" aria-label="Demo projects">
     <!-- options will be injected by the extension -->
   </select>
-  <label style="margin-left:12px;">
-    <input id="add-to-sdk" type="checkbox" /> Add demo project to the current SDK
-  </label>
+  <p id="add-to-sdk-container">
+    <label style="margin-left:12px;">
+      <input id="add-to-sdk" type="checkbox" /> Add demo project to the current SDK
+    </label>
+  </p>
   <br />
   <button id="create">Create Demo Project</button>
   <!--PROJECTS_SCRIPT-->
