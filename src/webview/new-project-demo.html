@@ -19,19 +19,24 @@
   <select id="demo-projects" aria-label="Demo projects">
     <!-- options will be injected by the extension -->
   </select>
+  <label style="margin-left:12px;">
+    <input id="add-to-sdk" type="checkbox" /> Add demo project to the current SDK
+  </label>
   <br />
   <button id="create">Create Demo Project</button>
   <!--PROJECTS_SCRIPT-->
   <script>
     (function() {
       const select = document.getElementById('demo-projects');
+      const addToSdk = document.getElementById('add-to-sdk');
       document.getElementById('create').addEventListener('click', () => {
         const selected = select ? select.value : null;
+        const add = addToSdk ? !!addToSdk.checked : false;
         if (window && window.acquireVsCodeApi) {
           const api = acquireVsCodeApi();
-          api.postMessage({ type: 'createDemo', payload: { name: selected || 'demo-project' } });
+          api.postMessage({ type: 'createDemo', payload: { name: selected || 'demo-project', addToSdk: add } });
         }
-        alert('Create demo project clicked. Selected: ' + (selected || 'demo-project'));
+        console.log('Create demo project clicked. Selected: ' + (selected || 'demo-project') + ', addToSdk=' + add);
       });
 
       // If the extension injected `window.__demoProjects`, populate the select

@@ -1,31 +1,31 @@
 {
     "unirtos_helloworld_demos":
     {
-        "repo": "",
+        "repo": "https://github.com/UniRTOS/unirtos_helloworld_demos.git",
         "description": "A simple hello world project.",
         "name": "Hello World"
     },
     "unirtos_network_demos":
     {
-        "repo": "",
+        "repo": "https://github.com/UniRTOS/unirtos_network_demos.git",
         "description": "A simple network project.",
         "name": "Network Demo"
     },
     "unirtos_uart_demos":
     {
-        "repo": "",
+        "repo": "https://github.com/UniRTOS/unirtos_uart_demos.git",
         "description": "A simple UART project.",
         "name": "UART Demo"
     },
     "unirtos_vfs_demos":
     {
-        "repo": "",
+        "repo": "https://github.com/UniRTOS/unirtos_vfs_demos.git",
         "description": "A simple VFS project.",
         "name": "VFS Demo"
     },
     "unirtos_qurl_http_demos":
     {
-        "repo": "",
+        "repo": "https://github.com/UniRTOS/unirtos_qurl_http_demos.git",
         "description": "A simple HTTP project.",
         "name": "HTTP Demo"
     }
