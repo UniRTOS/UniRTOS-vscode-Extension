@@ -15,16 +15,40 @@
   <div id="header-root"></div>
   <h1>New Project — Demo</h1>
   <p>This is a demo webview for creating a new project. Replace with your actual UI.</p>
+  <label for="demo-projects">Choose demo project:</label>
+  <select id="demo-projects" aria-label="Demo projects">
+    <!-- options will be injected by the extension -->
+  </select>
+  <br />
   <button id="create">Create Demo Project</button>
+  <!--PROJECTS_SCRIPT-->
   <script>
-    document.getElementById('create').addEventListener('click', () => {
-      // Post a message to the extension host if needed
-      if (window && window.acquireVsCodeApi) {
-        const api = acquireVsCodeApi();
-        api.postMessage({ type: 'createDemo', payload: { name: 'demo-project' } });
+    (function() {
+      const select = document.getElementById('demo-projects');
+      document.getElementById('create').addEventListener('click', () => {
+        const selected = select ? select.value : null;
+        if (window && window.acquireVsCodeApi) {
+          const api = acquireVsCodeApi();
+          api.postMessage({ type: 'createDemo', payload: { name: selected || 'demo-project' } });
+        }
+        alert('Create demo project clicked. Selected: ' + (selected || 'demo-project'));
+      });
+
+      // If the extension injected `window.__demoProjects`, populate the select
+      try {
+        const projects = window.__demoProjects || [];
+        if (select && Array.isArray(projects)) {
+          projects.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id || p.name || p;
+            opt.textContent = p.name || p;
+            select.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        // ignore
       }
-      alert('Create demo project clicked (demo only).');
-    });
+    })();
   </script>
 </body>
 </html>

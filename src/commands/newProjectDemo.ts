@@ -30,6 +30,19 @@ export function showNewProjectDemo(context: vscode.ExtensionContext) {
     console.warn('Header fragment not injected:', e);
   }
 
+  // Inject demo projects from JSON so the webview can populate the dropdown
+  try {
+    const demoFile = path.join(context.extensionPath, 'src', 'data', 'demo-projects.json');
+    const demoRaw = fs.readFileSync(demoFile, 'utf8');
+    const demoObj = JSON.parse(demoRaw || '{}');
+    const projects = Object.keys(demoObj).map(k => ({ id: k, name: (demoObj[k] && demoObj[k].name) || k }));
+    const projectsScript = `<script>window.__demoProjects = ${JSON.stringify(projects)};</script>`;
+    html = html.replace('<!--PROJECTS_SCRIPT-->', projectsScript);
+  } catch (e) {
+    console.warn('Failed to inject demo projects:', e);
+    html = html.replace('<!--PROJECTS_SCRIPT-->', '');
+  }
+
   panel.webview.html = html;
 }
 
