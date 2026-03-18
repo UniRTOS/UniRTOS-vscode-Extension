@@ -3,30 +3,70 @@
     {
         "repo": "https://github.com/UniRTOS/unirtos_helloworld_demos.git",
         "description": "A simple hello world project.",
-        "name": "Hello World"
+        "name": "Hello World",
+        "config": {
+            "Kconfig": "\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool \"Enable hello world demo\"\n    default n\n",
+            "CMakeLists": "\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n",
+            "quecos_apps_config": "\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n",
+            "apps_init": "#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n",
+            "target": "\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n",
+            "show_view": "\n# Customer apps\nmessage(\"\nCustomer Apps\")\nmessage(STATUS \"CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- ${CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC}\")\n"
+        }
     },
     "unirtos_network_demos":
     {
         "repo": "https://github.com/UniRTOS/unirtos_network_demos.git",
         "description": "A simple network project.",
-        "name": "Network Demo"
+        "name": "Network Demo",
+        "config": {
+            "Kconfig": "\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool \"Enable hello world demo\"\n    default n\n",
+            "CMakeLists": "\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n",
+            "quecos_apps_config": "\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n",
+            "apps_init": "#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n",
+            "target": "\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n",
+            "show_view": "\n# Customer apps\nmessage(\"\nCustomer Apps\")\nmessage(STATUS \"CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- ${CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC}\")\n"
+        }
     },
     "unirtos_uart_demos":
     {
         "repo": "https://github.com/UniRTOS/unirtos_uart_demos.git",
         "description": "A simple UART project.",
-        "name": "UART Demo"
+        "name": "UART Demo",
+        "config": {
+            "Kconfig": "\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool \"Enable hello world demo\"\n    default n\n",
+            "CMakeLists": "\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n",
+            "quecos_apps_config": "\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n",
+            "apps_init": "#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n",
+            "target": "\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n",
+            "show_view": "\n# Customer apps\nmessage(\"\nCustomer Apps\")\nmessage(STATUS \"CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- ${CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC}\")\n"
+        }
     },
     "unirtos_vfs_demos":
     {
         "repo": "https://github.com/UniRTOS/unirtos_vfs_demos.git",
         "description": "A simple VFS project.",
-        "name": "VFS Demo"
+        "name": "VFS Demo",
+        "config": {
+            "Kconfig": "\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool \"Enable hello world demo\"\n    default n\n",
+            "CMakeLists": "\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n",
+            "quecos_apps_config": "\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n",
+            "apps_init": "#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n",
+            "target": "\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n",
+            "show_view": "\n# Customer apps\nmessage(\"\nCustomer Apps\")\nmessage(STATUS \"CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- ${CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC}\")\n"
+        }
     },
     "unirtos_qurl_http_demos":
     {
         "repo": "https://github.com/UniRTOS/unirtos_qurl_http_demos.git",
         "description": "A simple HTTP project.",
-        "name": "HTTP Demo"
+        "name": "HTTP Demo",
+        "config": {
+            "Kconfig": "\nconfig QAPP_QURL_HTTP_DEMO_FUNC\n    bool \"UniRTOS qurl http demo\"\n    depends on QCM_QURL_FUNC\n    default n\n",
+            "CMakeLists": "\nif(CONFIG_QAPP_QURL_HTTP_DEMO_FUNC)\n    add_subdirectory_if_exist(qurl_http_demos)\nendif()\n",
+            "quecos_apps_config": "\n/**\n * qurl http demo function support\n */\n#cmakedefine CONFIG_QAPP_QURL_HTTP_DEMO_FUNC\n",
+            "apps_init": "\n#ifdef CONFIG_QAPP_QURL_HTTP_DEMO_FUNC\nextern void unir_qurl_http_get_demo_init(void);\n#endif /* CONFIG_QAPP_QURL_HTTP_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n#ifdef CONFIG_QAPP_QURL_HTTP_DEMO_FUNC\n    unir_qurl_http_get_demo_init();\n#endif /* CONFIG_QAPP_QURL_HTTP_DEMO_FUNC */\n}\n",
+            "target": "\nCONFIG_QAPP_UNIRTOS_HTTP_AT_FUNC=y\n",
+            "show_view": "\n# Customer apps\nmessage(STATUS \"CONFIG_QAPP_QURL_HTTP_DEMO_FUNC -----------------------${CONFIG_QAPP_QURL_HTTP_DEMO_FUNC}\")\n"
+        }
     }
 }

@@ -116,26 +116,26 @@ function replaceTextInFile(targetPath: string, search: RegExp, replacement: stri
  * Update several SDK files by appending provided blocks when missing.
  * Returns true on success, false on any step failure.
  */
-function updateSdkFiles(workspaceRoot: string): boolean {
+function updateSdkFiles(workspaceRoot: string, demoEntry?: any): boolean {
   try {
     // step 4: Kconfig
     let filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'Kconfig');
-    let block = `\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool "Enable hello world demo"\n    default n\n`;
+    let block = demoEntry.config.Kconfig;
     if (!appendTextToFileBottom(filePath, block, 'config QAPP_HELLO_WORLD_DEMO_FUNC')) return false;
 
     // step 5: CMakeLists
     filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'CMakeLists.txt');
-    block = `\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n`;
+    block = demoEntry.config.CMakeLists;
     if (!appendTextToFileBottom(filePath, block)) return false;
 
     // step 6: quecos_apps_config
     filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'include', 'unirtos_apps_config.h.in');
-    block = `\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n`;
+    block = demoEntry.config.quecos_apps_config;
     if (!appendTextToFileBottom(filePath, block)) return false;
 
     // step 7: apps_init.c — replace existing apps_init
     filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'app_init', 'apps_init.c');
-    block = `#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n`;
+    block = demoEntry.config.apps_init;
     const fnRegex = /void\s+apps_init\s*\(\s*void\s*\)\s*\{[\s\S]*?\}/m;
     const replaced = replaceTextInFile(filePath, fnRegex, block);
     if (!replaced) {
@@ -144,12 +144,12 @@ function updateSdkFiles(workspaceRoot: string): boolean {
 
     // step 8: target.config
     filePath = path.join(workspaceRoot, 'target.config');
-    block = `\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n`;
+    block = demoEntry.config.target;
     if (!appendTextToFileBottom(filePath, block)) return false;
 
     // step 9: show_view.cmake
     filePath = path.join(workspaceRoot, 'show_view.cmake');
-    block = `\n# Customer apps\nmessage("\nCustomer Apps")\nmessage(STATUS "CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- $\{CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\}")\n`;
+    block = demoEntry.config.show_view;
     if (!appendTextToFileBottom(filePath, block)) return false;
 
     return true;
@@ -287,7 +287,7 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
 
     // Update sdk files
     try {
-      const ok = updateSdkFiles(workspaceRoot);
+      const ok = updateSdkFiles(workspaceRoot, entry);
       if (!ok) {
         vscode.window.showWarningMessage('Failed to update SDK files.');
         return;
