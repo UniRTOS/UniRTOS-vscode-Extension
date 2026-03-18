@@ -76,7 +76,7 @@ function removeUnirtosPrefix(dest: string, workspaceRoot: string, id: string): s
  * Creates parent directories and the file when needed.
  * Returns true if text was added, false if it already existed or on error.
  */
-function appendTextToFileBottomIfMissing(targetPath: string, text: string, uniqueCheck?: string): boolean {
+function appendTextToFileBottom(targetPath: string, text: string, uniqueCheck?: string): boolean {
   try {
     const check = uniqueCheck || text;
     if (fs.existsSync(targetPath)) {
@@ -91,6 +91,70 @@ function appendTextToFileBottomIfMissing(targetPath: string, text: string, uniqu
     return true;
   } catch (e) {
     console.warn('Failed to append text to file:', e);
+    return false;
+  }
+}
+
+/**
+ * Replace first match of `search` (RegExp) in file with `replacement`.
+ * If file doesn't exist, the function will create it with `replacement`.
+ * Returns true when replacement (or creation) occurred, false on error or when nothing changed.
+ */
+function replaceTextInFile(targetPath: string, search: RegExp, replacement: string): boolean {
+  try {
+    const cur = fs.readFileSync(targetPath, 'utf8');
+    const updated = cur.replace(search, replacement);
+    fs.writeFileSync(targetPath, updated, 'utf8');
+    return true;
+  } catch (e) {
+    console.warn('Failed to replace text in file:', e);
+    return false;
+  }
+}
+
+/**
+ * Update several SDK files by appending provided blocks when missing.
+ * Returns true on success, false on any step failure.
+ */
+function updateSdkFiles(workspaceRoot: string): boolean {
+  try {
+    // step 4: Kconfig
+    let filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'Kconfig');
+    let block = `\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool "Enable hello world demo"\n    default n\n`;
+    if (!appendTextToFileBottom(filePath, block, 'config QAPP_HELLO_WORLD_DEMO_FUNC')) return false;
+
+    // step 5: CMakeLists
+    filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'CMakeLists.txt');
+    block = `\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n`;
+    if (!appendTextToFileBottom(filePath, block)) return false;
+
+    // step 6: quecos_apps_config
+    filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'include', 'unirtos_apps_config.h.in');
+    block = `\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n`;
+    if (!appendTextToFileBottom(filePath, block)) return false;
+
+    // step 7: apps_init.c — replace existing apps_init
+    filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'app_init', 'apps_init.c');
+    block = `#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n`;
+    const fnRegex = /void\s+apps_init\s*\(\s*void\s*\)\s*\{[\s\S]*?\}/m;
+    const replaced = replaceTextInFile(filePath, fnRegex, block);
+    if (!replaced) {
+      if (!appendTextToFileBottom(filePath, '\n' + block)) return false;
+    }
+
+    // step 8: target.config
+    filePath = path.join(workspaceRoot, 'target.config');
+    block = `\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n`;
+    if (!appendTextToFileBottom(filePath, block)) return false;
+
+    // step 9: show_view.cmake
+    filePath = path.join(workspaceRoot, 'show_view.cmake');
+    block = `\n# Customer apps\nmessage("\nCustomer Apps")\nmessage(STATUS "CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- $\{CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\}")\n`;
+    if (!appendTextToFileBottom(filePath, block)) return false;
+
+    return true;
+  } catch (e) {
+    console.warn('updateSdkFiles failed:', e);
     return false;
   }
 }
@@ -181,62 +245,15 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
 
     // Update sdk files
     try {
-      // step 4: config
-      let folderPath = path.join(workspaceRoot, 'qos_applications', 'apps', 'Kconfig');
-      let block = `\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool "Enable hello world demo"\n    default n\n`;
-      let added = appendTextToFileBottomIfMissing(folderPath, block, 'config QAPP_HELLO_WORLD_DEMO_FUNC');
-      if (!added) {
-        vscode.window.showWarningMessage('Failed to update config block.');
-        return;
-      }
-
-      // step 5: CMakeLists
-      folderPath = path.join(workspaceRoot, 'qos_applications', 'apps', 'CMakeLists.txt');
-      block = `\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(hello_world)\nendif()\n`;
-      added = appendTextToFileBottomIfMissing(folderPath, block);
-      if (!added) {
-        vscode.window.showWarningMessage('Failed to update CMakeLists.txt block.');
-        return;
-      }
-
-      // step 6: quecos_apps_config
-      folderPath = path.join(workspaceRoot, 'qos_applications', 'apps', 'include', 'unirtos_apps_config.h.in');
-      block = `\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n`;
-      added = appendTextToFileBottomIfMissing(folderPath, block);
-      if (!added) {
-        vscode.window.showWarningMessage('Failed to update unirtos_apps_config.h.in block.');
-        return;
-      }
-
-      // step 7: apps_init.c
-      folderPath = path.join(workspaceRoot, 'qos_applications', 'apps', 'app_init', 'apps_init.c');
-      block = `\n#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid app_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n`;
-      added = appendTextToFileBottomIfMissing(folderPath, block);
-      if (!added) {
-        vscode.window.showWarningMessage('Failed to update apps_init.c block.');
-        return;
-      }
-
-      // step 8: target.config
-      folderPath = path.join(workspaceRoot, 'target.config');
-      block = `\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n`;
-      added = appendTextToFileBottomIfMissing(folderPath, block);
-      if (!added) {
-        vscode.window.showWarningMessage('Failed to update target.config block.');
-        return;
-      }
-
-      // step 9: show_view.cmake
-      folderPath = path.join(workspaceRoot, 'show_view.cmake');
-      block = `\n# Customer apps\nmessage("\nCustomer Apps")\nmessage(STATUS "CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- $\{CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\}")\n`;
-      added = appendTextToFileBottomIfMissing(folderPath, block);
-      if (!added) {
-        vscode.window.showWarningMessage('Failed to update show_view.cmake block.');
+      const ok = updateSdkFiles(workspaceRoot);
+      if (!ok) {
+        vscode.window.showWarningMessage('Failed to update SDK files.');
         return;
       }
     } catch (e) {
-      vscode.window.showWarningMessage('Failed to update config block.');
-      console.warn('Failed to update Kconfig:', e);
+      vscode.window.showWarningMessage('Failed to update SDK files.');
+      console.warn('Failed to update SDK files:', e);
+      return;
     }
 
     if (addToSdk) {
