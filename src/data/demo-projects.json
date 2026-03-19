@@ -19,12 +19,12 @@
         "description": "A simple network project.",
         "name": "Network Demo",
         "config": {
-            "Kconfig": "\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool \"Enable hello world demo\"\n    default n\n",
-            "CMakeLists": "\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n",
-            "quecos_apps_config": "\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n",
-            "apps_init": "#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n",
-            "target": "\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n",
-            "show_view": "\n# Customer apps\nmessage(\"\nCustomer Apps\")\nmessage(STATUS \"CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- ${CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC}\")\n"
+            "Kconfig": "\nconfig QAPP_NETWORK_DEMO_FUNC\n    bool \"UniRTOS network demo\"\n    depends on QOSA_NW_FUNC\n    default n\n",
+            "CMakeLists": "\nif(CONFIG_QAPP_NETWORK_DEMO_FUNC OR CONFIG_QAPP_DATACALL_DEMO_FUNC)\n    add_subdirectory_if_exist(network_demos)\nendif()\n",
+            "quecos_apps_config": "\n/**\n* UniRTOS network demo\n*/\n#cmakedefine CONFIG_QAPP_NETWORK_DEMO_FUNC\n",
+            "apps_init": "\n#ifdef CONFIG_QAPP_NETWORK_DEMO_FUNC\nextern void unir_network_demo_init(void);\n#endif /* CONFIG_QAPP_NETWORK_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n#ifdef CONFIG_QAPP_NETWORK_DEMO_FUNC    unir_network_demo_init();\n#endif /* CONFIG_QAPP_NETWORK_DEMO_FUNC */\n}\n",
+            "target": "\n# CONFIG_QAPP_NETWORK_DEMO_FUNC is not set\n",
+            "show_view": "\n# Customer apps\nmessage(STATUS \"CONFIG_QAPP_NETWORK_DEMO_FUNC -------------------------${CONFIG_QAPP_NETWORK_DEMO_FUNC}\")\n"
         }
     },
     "unirtos_uart_demos":
@@ -47,12 +47,12 @@
         "description": "A simple VFS project.",
         "name": "VFS Demo",
         "config": {
-            "Kconfig": "\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool \"Enable hello world demo\"\n    default n\n",
-            "CMakeLists": "\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n",
-            "quecos_apps_config": "\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n",
-            "apps_init": "#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n",
-            "target": "\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n",
-            "show_view": "\n# Customer apps\nmessage(\"\nCustomer Apps\")\nmessage(STATUS \"CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- ${CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC}\")\n"
+            "Kconfig": "\nconfig QAPP_VFS_DEMO_FUNC\n    bool \"UniRTOS vfs demo\"\n    depends on QOSA_VFS_FILESYSTEM_FUNC\n    default n\n",
+            "CMakeLists": "\nif(CONFIG_QAPP_VFS_DEMO_FUNC)\n    add_subdirectory_if_exist(vfs_demos)\nendif()\n",
+            "quecos_apps_config": "\n/**\n * vfs demo function support\n */\n#cmakedefine CONFIG_QAPP_VFS_DEMO_FUNC\n",
+            "apps_init": "#ifdef CONFIG_QAPP_VFS_DEMO_FUNC\nextern void unir_vfs_demo_init(void);\n#endif /* CONFIG_QAPP_VFS_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n#ifdef CONFIG_QAPP_VFS_DEMO_FUNC\n    unir_vfs_demo_init();\n#endif /* CONFIG_QAPP_VFS_DEMO_FUNC */\n}\n",
+            "target": "\n# CONFIG_QAPP_VFS_DEMO_FUNC is not set\n",
+            "show_view": "\n# Customer apps\nmessage(STATUS \"CONFIG_QAPP_VFS_DEMO_FUNC -----------------------------${CONFIG_QAPP_VFS_DEMO_FUNC}\")\n"
         }
     },
     "unirtos_qurl_http_demos":
