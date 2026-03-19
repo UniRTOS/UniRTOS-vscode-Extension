@@ -2,8 +2,21 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
+import { projectConfigPassed, showCheckRequirements } from './checkView';
 
-export function showNewProjectDemo(context: vscode.ExtensionContext) {
+export async function showNewProjectDemo(context: vscode.ExtensionContext) {
+  // If global checks have not passed, disable this page and offer to open checks
+  if (!projectConfigPassed) {
+    const choice = await vscode.window.showWarningMessage(
+      'Environment checks have not passed — New Project (Demo) is disabled.',
+      { modal: true },
+      'Open Checks'
+    );
+    if (choice === 'Open Checks') {
+      showCheckRequirements(context);
+    }
+    return;
+  }
   const panel = vscode.window.createWebviewPanel(
     'unirtosNewProjectDemo',
     'UniRTOS — New Project (Demo)',

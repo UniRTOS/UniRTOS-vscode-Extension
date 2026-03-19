@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export let checksPassed = false;
+export let projectConfigPassed = false;
 
 function checkWorkspaceForSdk(context: vscode.ExtensionContext, post: (id: string, value: string) => void): boolean {
   try {
@@ -13,18 +13,33 @@ function checkWorkspaceForSdk(context: vscode.ExtensionContext, post: (id: strin
     }
 
     const wf = folders[0].uri.fsPath;
-    // Only check that a workspace is open (handled above) and that the
-    // root contains either CMakeLists.txt or buildlib_quecos.bat.
-    let hasCMake = false;
+    // check for buildlib_unirtos.bat
     let hasBatch = false;
     try {
-      hasCMake = fs.existsSync(path.join(wf, 'CMakeLists.txt'));
-      hasBatch = fs.existsSync(path.join(wf, 'buildlib_quecos.bat'));
+      // Check top-level first
+      hasBatch = fs.existsSync(path.join(wf, 'buildlib_unirtos.bat'));
+      // If not found at top-level, check one-level deep subfolders
+      if (!hasBatch) {
+        try {
+          const entries = fs.readdirSync(wf, { withFileTypes: true });
+          for (const e of entries) {
+            if (e.isDirectory()) {
+              const candidate = path.join(wf, e.name, 'buildlib_unirtos.bat');
+              if (fs.existsSync(candidate)) {
+                hasBatch = true;
+                break;
+              }
+            }
+          }
+        } catch (innerErr) {
+          // ignore read errors of directory
+        }
+      }
     } catch (err) {
       // ignore read errors
     }
 
-    if (hasCMake || hasBatch) {
+    if (hasBatch) {
       post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="ok">Yes</span>`);
       return true;
     } else {
@@ -130,7 +145,7 @@ export function showCheckRequirements(context: vscode.ExtensionContext) {
   const pythonOk = checkPython3(post); // 3. python check
   const workspaceOk = checkWorkspaceForSdk(context, post); // 4. check if current workspace is UniRTOS SDK
 
-  checksPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
+  projectConfigPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
 }
 
 export default showCheckRequirements;
