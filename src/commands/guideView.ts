@@ -21,6 +21,15 @@ export function showGuide(context: vscode.ExtensionContext) {
     console.error('Failed to read guide.html', e);
   }
 
+  // inject header fragment if available (uses <div id="header-root"></div> in HTML)
+  try {
+    const headerFile = path.join(context.extensionPath, 'src', 'webview', 'header.html');
+    const headerHtml = fs.readFileSync(headerFile, 'utf8');
+    html = html.replace('<div id="header-root"></div>', headerHtml);
+  } catch (e) {
+    console.warn('Header fragment not injected into guide.html:', e);
+  }
+
   panel.webview.html = html;
 }
 
