@@ -33,12 +33,12 @@
         "description": "A simple UART project.",
         "name": "UART Demo",
         "config": {
-            "Kconfig": "\nconfig QAPP_HELLO_WORLD_DEMO_FUNC\n    bool \"Enable hello world demo\"\n    default n\n",
-            "CMakeLists": "\nif(CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC)\n    add_subdirectory_if_exist(helloworld_demos)\nendif()\n",
-            "quecos_apps_config": "\n/**\n * Hello world demo config define\n */\n#cmakedefine CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n",
-            "apps_init": "#ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\nextern void quec_hello_word_init(void);\n#endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n\nvoid apps_init(void)\n{\n    #ifdef CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC\n    quec_hello_word_init();\n    #endif /* CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC */\n}\n",
-            "target": "\nCONFIG_QAPP_HELLO_WORLD_DEMO_FUNC=y\n",
-            "show_view": "\n# Customer apps\nmessage(\"\nCustomer Apps\")\nmessage(STATUS \"CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC ------------------------- ${CONFIG_QAPP_HELLO_WORLD_DEMO_FUNC}\")\n"
+            "Kconfig": "\nconfig QAPP_UART_DEMO_FUNC\n    bool \"UniRTOS uart demo\"\n    default n\n",
+            "CMakeLists": "\nif(CONFIG_QAPP_UART_DEMO_FUNC)\n    add_subdirectory_if_exist(uart_demos)\nendif()\n",
+            "quecos_apps_config": "\n/**\n * UART demo function support\n */\n#cmakedefine CONFIG_QAPP_UART_DEMO_FUNC\n",
+            "apps_init": "\n#ifdef CONFIG_QAPP_UART_DEMO_FUNC\nextern void unir_uart_demo_init(void);\n#endif /* CONFIG_QAPP_UART_DEMO_FUNC */\nvoid apps_init(void)\n{\n#ifdef CONFIG_QAPP_UART_DEMO_FUNC\n    unir_uart_demo_init();\n#endif /* CONFIG_QAPP_UART_DEMO_FUNC */\n}\n",
+            "target": "\nCONFIG_QAPP_UNIRTOS_UART_AT_FUNC=y\n",
+            "show_view": "\nmessage(STATUS \"CONFIG_QAPP_UART_DEMO_FUNC ----------------------------${CONFIG_QAPP_UART_DEMO_FUNC}\")\n"
         }
     },
     "unirtos_vfs_demos":
