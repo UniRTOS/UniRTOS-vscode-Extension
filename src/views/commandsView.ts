@@ -30,7 +30,7 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
       new CommandItem('New Project'),
       new CommandItem('New Project From Demo'),
       new CommandItem('Check Requirements'),
-      new CommandItem('Open Project'),
+      new CommandItem('Open UniRTOS Project'),
       new CommandItem('Build Firmware')
     ];
     return Promise.resolve(items);

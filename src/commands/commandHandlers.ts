@@ -26,6 +26,14 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
         case 'New Project From Demo':
           showNewProjectDemo(context);
           return;
+        case 'Open UniRTOS Project':
+          {
+            const uris = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false });
+            if (uris && uris.length > 0) {
+              await vscode.commands.executeCommand('vscode.openFolder', uris[0], false);
+            }
+            return;
+          }
         default:
           const labels = labelsArr.join(', ');
           vscode.window.showInformationMessage(`Running: ${labels || 'none'}`);
