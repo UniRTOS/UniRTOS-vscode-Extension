@@ -1,8 +1,22 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { projectConfigPassed, showCheckRequirements } from './checkView';
 
-export function showBuildFirmware(context: vscode.ExtensionContext) {
+export async function showBuildFirmware(context: vscode.ExtensionContext) {
+  // If global checks have not passed, disable this page and offer to open checks
+  if (!projectConfigPassed) {
+    const choice = await vscode.window.showWarningMessage(
+      'Environment checks have not passed — New Project (Demo) is disabled.',
+      { modal: true },
+      'Open Checks'
+    );
+    if (choice === 'Open Checks') {
+      showCheckRequirements(context);
+    }
+    return;
+  }
+
   const panel = vscode.window.createWebviewPanel(
     'unirtosBuildFirmware',
     'UniRTOS — Build Firmware',
@@ -39,23 +53,28 @@ export function showBuildFirmware(context: vscode.ExtensionContext) {
     console.warn('Header fragment not injected:', e);
   }
 
-  // replace image placeholder with a proper webview URI for the image if it exists
+  // replace image placeholders with proper webview URIs for images if they exist
   try {
-    const imgPath = path.join(context.extensionPath, 'images', 'download-mode.png');
-    if (fs.existsSync(imgPath)) {
-      try {
-        const uri = vscode.Uri.file(imgPath);
-        const asWebview = (panel.webview as any).asWebviewUri;
-        const imgUri = typeof asWebview === 'function' ? asWebview.call(panel.webview, uri) : uri;
-        html = html.replace('%%DOWNLOAD_IMAGE%%', imgUri.toString());
-      } catch (inner) {
-        html = html.replace('%%DOWNLOAD_IMAGE%%', '');
+    const images = [
+      { placeholder: '%%DOWNLOAD_IMAGE%%', file: path.join(context.extensionPath, 'images', 'download-mode.png') },
+      { placeholder: '%%QDLOADER_IMAGE%%', file: path.join(context.extensionPath, 'images', 'QDLoader-port.png') }
+    ];
+    for (const img of images) {
+      if (fs.existsSync(img.file)) {
+        try {
+          const uri = vscode.Uri.file(img.file);
+          const asWebview = (panel.webview as any).asWebviewUri;
+          const imgUri = typeof asWebview === 'function' ? asWebview.call(panel.webview, uri) : uri;
+          html = html.replace(img.placeholder, imgUri.toString());
+        } catch {
+          html = html.replace(img.placeholder, '');
+        }
+      } else {
+        html = html.replace(img.placeholder, '');
       }
-    } else {
-      html = html.replace('%%DOWNLOAD_IMAGE%%', '');
     }
   } catch (e) {
-    html = html.replace('%%DOWNLOAD_IMAGE%%', '');
+    html = html.replace('%%DOWNLOAD_IMAGE%%', '').replace('%%QDLOADER_IMAGE%%', '');
   }
 
   panel.webview.html = html;

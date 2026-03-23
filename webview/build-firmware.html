@@ -16,6 +16,7 @@
     #status{margin-top:12px;color:#555}
     .tab-panel{display:none;margin-top:12px}
     .tab-panel.active{display:block}
+    .step-image{max-width:600px;width:100%;height:auto;display:block}
     .controls{display:flex;align-items:center;gap:12px;margin-top:12px}
     .step-indicator{color:#666;font-size:13px}
   </style>
@@ -23,25 +24,6 @@
 <body>
   <div id="header-root"></div>
   <h1>Build UniRTOS Firmware</h1>
-  <p>Use the tabs to review the steps, then build.</p>
-
-  <section id="tab1" class="tab-panel active"> 
-    <h2>Overview</h2>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
-      <img id="downloadImage" src="%%DOWNLOAD_IMAGE%%" alt="download mode" style="max-width:320px;width:100%;height:auto" />
-      <p style="font-weight:600">1. Mount the corresponding TE-A module onto EVB, and short the BOOT pin to enter download mode.</p>
-    </div>
-  </section>
-
-  <section id="tab2" class="tab-panel">
-    <h2>Options</h2>
-    <p>Specify build options here (placeholder).</p>
-  </section>
-
-  <section id="tab3" class="tab-panel">
-    <h2>Build</h2>
-    <p>Ready to build. Click Next to start the build.</p>
-  </section>
 
   <div class="controls">
     <button id="backBtn" disabled>Back</button>
@@ -49,6 +31,27 @@
     <div class="step-indicator" id="stepIndicator">Step 1 / 3</div>
     <div id="status" aria-live="polite"></div>
   </div>
+
+  <section id="tab1" class="tab-panel active"> 
+    <h2>EDL Mode</h2>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <img id="downloadImage" class="step-image" src="%%DOWNLOAD_IMAGE%%" alt="download mode" />
+      <p style="font-weight:600">1. Mount the corresponding TE-A module onto EVB, and short the BOOT pin to enter download mode.</p>
+    </div>
+  </section>
+
+  <section id="tab2" class="tab-panel">
+    <h2>QD Loader Port</h2>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <img id="qdloaderImage" class="step-image" src="%%QDLOADER_IMAGE%%" alt="QD Loader port" />
+      <p style="font-weight:600">2. Open Device Manager, find Quectel QDLoader Port under “Ports (COM & LPT)”, and note the assigned COM port number.</p>
+    </div>
+  </section>
+
+  <section id="tab3" class="tab-panel">
+    <h2>Build</h2>
+    <p>Ready to build. Click Next to start the build.</p>
+  </section>
 
   <script>
     const vscode = acquireVsCodeApi ? acquireVsCodeApi() : null;
