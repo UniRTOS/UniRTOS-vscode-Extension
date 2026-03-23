@@ -79,35 +79,96 @@ export async function showBuildFirmware(context: vscode.ExtensionContext) {
 
   panel.webview.html = html;
 
-  panel.webview.onDidReceiveMessage(async (msg) => {
-    if (!msg || msg.command !== 'buildFirmware') return;
-    const webview = panel.webview;
-    webview.postMessage({ command: 'buildStatus', text: 'Locating build task...' });
+  const output = vscode.window.createOutputChannel('UniRTOS Build');
+  // keep the output channel hidden until user wants to view; we'll show on first debug log
 
-    try {
-      const tasks = await vscode.tasks.fetchTasks();
-      const found = tasks.find(t => t.name === 'compile' || t.name === 'npm: compile' || (t.definition && (t.definition.label === 'compile')));
-      if (found) {
-        webview.postMessage({ command: 'buildStatus', text: 'Starting configured "compile" task...' });
-        const exec = await vscode.tasks.executeTask(found);
-        const disp = vscode.tasks.onDidEndTaskProcess(e => {
-          if (e.execution.task === found) {
-            webview.postMessage({ command: 'buildStatus', text: `Build finished (exit code ${e.exitCode})` });
-            disp.dispose();
-          }
-        });
-        return;
+  panel.webview.onDidReceiveMessage(async (msg) => {
+    if (!msg) return;
+    const webview = panel.webview;
+
+    if (msg.command === 'buildFirmware') {
+      webview.postMessage({ command: 'buildStatus', text: 'Locating build task...' });
+
+      try {
+        const tasks = await vscode.tasks.fetchTasks();
+        const found = tasks.find(t => t.name === 'compile' || t.name === 'npm: compile' || (t.definition && (t.definition.label === 'compile')));
+        if (found) {
+          webview.postMessage({ command: 'buildStatus', text: 'Starting configured "compile" task...' });
+          const exec = await vscode.tasks.executeTask(found);
+          const disp = vscode.tasks.onDidEndTaskProcess(e => {
+            if (e.execution.task === found) {
+              webview.postMessage({ command: 'buildStatus', text: `Build finished (exit code ${e.exitCode})` });
+              disp.dispose();
+            }
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn('Error while fetching tasks', e);
       }
-    } catch (e) {
-      console.warn('Error while fetching tasks', e);
+
+      // Fallback: run npm script directly in extension root
+      webview.postMessage({ command: 'buildStatus', text: 'No configured task found — running `npm run compile`...' });
+      const child = require('child_process').exec('npm run compile', { cwd: context.extensionPath });
+      child.stdout.on('data', (d: any) => webview.postMessage({ command: 'buildStatus', text: String(d).trim() }));
+      child.stderr.on('data', (d: any) => webview.postMessage({ command: 'buildStatus', text: String(d).trim() }));
+      child.on('close', (code: number) => webview.postMessage({ command: 'buildStatus', text: `Build process exited with code ${code}` }));
+      return;
     }
 
-    // Fallback: run npm script directly in extension root
-    webview.postMessage({ command: 'buildStatus', text: 'No configured task found — running `npm run compile`...' });
-    const child = require('child_process').exec('npm run compile', { cwd: context.extensionPath });
-    child.stdout.on('data', (d: any) => webview.postMessage({ command: 'buildStatus', text: String(d).trim() }));
-    child.stderr.on('data', (d: any) => webview.postMessage({ command: 'buildStatus', text: String(d).trim() }));
-    child.on('close', (code: number) => webview.postMessage({ command: 'buildStatus', text: `Build process exited with code ${code}` }));
+    if (msg.command === 'requestPorts') {
+      try {
+        const ports: Array<{ label: string; value: string }> = [];
+        try {
+          // Try to load serialport and prefer a `list` method on the constructor.
+          let SerialPortCtor: any = null;
+          let listFn: any = null;
+          try {
+            const mod: any = await import('serialport');
+            SerialPortCtor = mod.SerialPort || mod.default || mod;
+          } catch {
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const mod2: any = require('serialport');
+              SerialPortCtor = mod2.SerialPort || mod2.default || mod2;
+            } catch {
+              SerialPortCtor = null;
+            }
+          }
+
+          if (SerialPortCtor && typeof SerialPortCtor.list === 'function') {
+            listFn = SerialPortCtor.list.bind(SerialPortCtor);
+          } else {
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const listMod: any = require('@serialport/list');
+              listFn = listMod.default || listMod.list || listMod;
+            } catch {
+              listFn = null;
+            }
+          }
+
+          if (typeof listFn === 'function') {
+            const portList = await listFn();
+            for (const p of portList) {
+              const value = (p.path || p.comName || p.com) as string;
+              const label = ((p.manufacturer || p.vendorId || p.productId) ? `${p.manufacturer || ''} ` : '') + (p.path || p.comName || p.com || '') + (p.productId ? ` (${p.productId})` : '');
+              ports.push({ label: label.trim(), value: value });
+            }
+          } else {
+            output.appendLine('[buildFirmware] serialport list() not available; install @serialport/list or a compatible package');
+          }
+        } catch (e) {
+          output.appendLine('[buildFirmware] serialport list error: ' + String(e));
+        }
+
+        webview.postMessage({ command: 'ports', ports });
+      } catch (e) {
+        output.appendLine('[buildFirmware] requestPorts handler error: ' + String(e));
+        webview.postMessage({ command: 'ports', ports: [] });
+      }
+      return;
+    }
   });
 }
 

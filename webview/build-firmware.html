@@ -32,6 +32,8 @@
     <div id="status" aria-live="polite"></div>
   </div>
 
+  <pre id="portsDebug" style="white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:8px;display:none;border:1px solid #eee;padding:8px;border-radius:4px;background:#fafafa"></pre>
+
   <section id="tab1" class="tab-panel active"> 
     <h2>EDL Mode</h2>
     <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
@@ -50,7 +52,14 @@
 
   <section id="tab3" class="tab-panel">
     <h2>Build</h2>
-    <p>Ready to build. Click Next to start the build.</p>
+    <p>Ready to build. Choose the device port and click Next to start the build.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
+      <label for="portSelect">Select USB port</label>
+      <select id="portSelect">
+        <option value="">(scanning...)</option>
+      </select>
+      <button id="refreshPorts" style="background:#555;color:#fff;padding:8px 12px;border-radius:6px">Refresh Ports</button>
+    </div>
   </section>
 
   <script>
@@ -77,6 +86,10 @@
       if (idx < panels.length - 1) {
         showPanel(idx + 1);
         status.textContent = '';
+        // request ports when showing step 3 (index 2)
+        if (idx + 1 === 2 && vscode) {
+          vscode.postMessage({ command: 'requestPorts' });
+        }
       } else {
         // last panel -> trigger build
         triggerBuild();
@@ -104,8 +117,30 @@
       const msg = event.data;
       if (msg && msg.command === 'buildStatus') {
         status.textContent = msg.text;
+      } else if (msg && msg.command === 'ports') {
+        const select = document.getElementById('portSelect');
+        if (!select) return;
+        // clear
+        select.innerHTML = '';
+        const ports = Array.isArray(msg.ports) ? msg.ports : [];
+        if (ports.length === 0) {
+          const opt = document.createElement('option'); opt.value = ''; opt.textContent = '(no ports found)'; select.appendChild(opt);
+        } else {
+          for (const p of ports) {
+            const opt = document.createElement('option'); opt.value = p.value || p.label || ''; opt.textContent = p.label || p.value || p;
+            select.appendChild(opt);
+          }
+        }
+        } else if (msg && msg.command === 'portsDebug') {
+          const dbg = document.getElementById('portsDebug');
+          if (!dbg) return;
+          dbg.style.display = 'block';
+          dbg.textContent = msg.debug || '';
       }
     });
+
+    const refreshBtn = document.getElementById('refreshPorts');
+    if (refreshBtn) refreshBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'requestPorts' }); });
   </script>
 </body>
 </html>
