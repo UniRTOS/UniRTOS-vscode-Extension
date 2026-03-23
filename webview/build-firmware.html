@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UniRTOS Build</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial; padding: 20px; color: #222 }
+    h1 { color: #0066cc }
+    pre { background:#f3f3f3; padding:10px; border-radius:4px; overflow:auto }
+    a { color: #0066cc }
+
+    /* page-specific */
+    /* full-page layout (no card) - content flows like other webviews */
+    button { background:#007acc;color:#fff;border:0;padding:10px 16px;border-radius:6px;font-size:14px;cursor:pointer }
+    #status{margin-top:12px;color:#555}
+    .tab-panel{display:none;margin-top:12px}
+    .tab-panel.active{display:block}
+    .controls{display:flex;align-items:center;gap:12px;margin-top:12px}
+    .step-indicator{color:#666;font-size:13px}
+  </style>
+</head>
+<body>
+  <div id="header-root"></div>
+  <h1>Build UniRTOS Firmware</h1>
+  <p>Use the tabs to review the steps, then build.</p>
+
+  <section id="tab1" class="tab-panel active"> 
+    <h2>Overview</h2>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <img id="downloadImage" src="%%DOWNLOAD_IMAGE%%" alt="download mode" style="max-width:320px;width:100%;height:auto" />
+      <p style="font-weight:600">1. Mount the corresponding TE-A module onto EVB, and short the BOOT pin to enter download mode.</p>
+    </div>
+  </section>
+
+  <section id="tab2" class="tab-panel">
+    <h2>Options</h2>
+    <p>Specify build options here (placeholder).</p>
+  </section>
+
+  <section id="tab3" class="tab-panel">
+    <h2>Build</h2>
+    <p>Ready to build. Click Next to start the build.</p>
+  </section>
+
+  <div class="controls">
+    <button id="backBtn" disabled>Back</button>
+    <button id="nextBtn">Next</button>
+    <div class="step-indicator" id="stepIndicator">Step 1 / 3</div>
+    <div id="status" aria-live="polite"></div>
+  </div>
+
+  <script>
+    const vscode = acquireVsCodeApi ? acquireVsCodeApi() : null;
+    const panels = Array.from(document.querySelectorAll('.tab-panel'));
+    const backBtn = document.getElementById('backBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const status = document.getElementById('status');
+    const stepIndicator = document.getElementById('stepIndicator');
+
+    function showPanel(index) {
+      panels.forEach((p, i) => p.classList.toggle('active', i === index));
+      stepIndicator.textContent = `Step ${index + 1} / ${panels.length}`;
+      backBtn.disabled = index === 0;
+      nextBtn.textContent = index === panels.length - 1 ? 'Build' : 'Next';
+    }
+
+    function currentIndex() {
+      return panels.findIndex(p => p.classList.contains('active'));
+    }
+
+    nextBtn.addEventListener('click', () => {
+      const idx = currentIndex();
+      if (idx < panels.length - 1) {
+        showPanel(idx + 1);
+        status.textContent = '';
+      } else {
+        // last panel -> trigger build
+        triggerBuild();
+      }
+    });
+
+    backBtn.addEventListener('click', () => {
+      const idx = currentIndex();
+      if (idx > 0) {
+        showPanel(idx - 1);
+        status.textContent = '';
+      }
+    });
+
+    function triggerBuild() {
+      if (vscode) {
+        vscode.postMessage({ command: 'buildFirmware' });
+        status.textContent = 'Build requested...';
+      } else {
+        status.textContent = 'VS Code API not available (preview).';
+      }
+    }
+
+    window.addEventListener('message', event => {
+      const msg = event.data;
+      if (msg && msg.command === 'buildStatus') {
+        status.textContent = msg.text;
+      }
+    });
+  </script>
+</body>
+</html>

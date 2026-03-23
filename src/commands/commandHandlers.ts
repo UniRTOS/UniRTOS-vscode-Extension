@@ -4,6 +4,7 @@ import { showGuide } from './guideView';
 import { showCheckRequirements } from './checkView';
 import { handleNewProject } from './newProject';
 import { showNewProjectDemo } from './newProjectDemo';
+import { showBuildFirmware } from './buildFirmware';
 
 export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
 
@@ -34,7 +35,10 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
             }
             return;
           }
-        default:
+          case 'Build UniRTOS Firmware':
+            showBuildFirmware(context);
+            return;
+          default:
           const labels = labelsArr.join(', ');
           vscode.window.showInformationMessage(`Running: ${labels || 'none'}`);
           break;
