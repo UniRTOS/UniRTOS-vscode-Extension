@@ -4,7 +4,7 @@ import { showGuide } from './guideView';
 import { showCheckRequirements } from './checkView';
 import { handleNewProject } from './newProject';
 import { showNewProjectDemo } from './newProjectDemo';
-import { showBuildFirmware } from './buildFirmware';
+import { showFlashFirmware } from './flashFirmware';
 
 export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
 
@@ -35,8 +35,8 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
             }
             return;
           }
-          case 'Build UniRTOS Firmware':
-            showBuildFirmware(context);
+          case 'Flash UniRTOS Firmware':
+            showFlashFirmware(context);
             return;
           default:
           const labels = labelsArr.join(', ');

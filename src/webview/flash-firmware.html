@@ -23,7 +23,7 @@
 </head>
 <body>
   <div id="header-root"></div>
-  <h1>Build UniRTOS Firmware</h1>
+  <h1>Flash UniRTOS Firmware</h1>
 
   <div class="controls">
     <button id="backBtn" disabled>Back</button>
@@ -139,8 +139,8 @@
 
     function triggerBuild() {
       if (vscode) {
-        vscode.postMessage({ command: 'buildFirmware' });
-        status.textContent = 'Build requested...';
+        vscode.postMessage({ command: 'flashFirmware' });
+        status.textContent = 'Flash requested...';
       } else {
         status.textContent = 'VS Code API not available (preview).';
       }
@@ -148,7 +148,7 @@
 
     window.addEventListener('message', event => {
       const msg = event.data;
-      if (msg && msg.command === 'buildStatus') {
+      if (msg && msg.command === 'flashStatus') {
         status.textContent = msg.text;
       } else if (msg && msg.command === 'ports') {
         const select = document.getElementById('portSelect');

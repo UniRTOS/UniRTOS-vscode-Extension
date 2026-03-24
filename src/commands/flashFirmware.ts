@@ -8,18 +8,18 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
     if (!msg) return;
     const webview = panel.webview;
 
-    if (msg.command === 'buildFirmware') {
-      webview.postMessage({ command: 'buildStatus', text: 'Locating build task...' });
+    if (msg.command === 'flashFirmware') {
+      webview.postMessage({ command: 'flashStatus', text: 'Locating flash task...' });
 
       try {
         const tasks = await vscode.tasks.fetchTasks();
         const found = tasks.find(t => t.name === 'compile' || t.name === 'npm: compile' || (t.definition && (t.definition.label === 'compile')));
         if (found) {
-          webview.postMessage({ command: 'buildStatus', text: 'Starting configured "compile" task...' });
+          webview.postMessage({ command: 'flashStatus', text: 'Starting configured "compile" task...' });
           const exec = await vscode.tasks.executeTask(found);
           const disp = vscode.tasks.onDidEndTaskProcess(e => {
             if (e.execution.task === found) {
-              webview.postMessage({ command: 'buildStatus', text: `Build finished (exit code ${e.exitCode})` });
+              webview.postMessage({ command: 'flashStatus', text: `Flash finished (exit code ${e.exitCode})` });
               disp.dispose();
             }
           });
@@ -30,11 +30,11 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
       }
 
       // Fallback: run npm script directly in extension root
-      webview.postMessage({ command: 'buildStatus', text: 'No configured task found — running `npm run compile`...' });
+      webview.postMessage({ command: 'flashStatus', text: 'No configured task found — running `npm run compile`...' });
       const child = require('child_process').exec('npm run compile', { cwd: context.extensionPath });
-      child.stdout.on('data', (d: any) => webview.postMessage({ command: 'buildStatus', text: String(d).trim() }));
-      child.stderr.on('data', (d: any) => webview.postMessage({ command: 'buildStatus', text: String(d).trim() }));
-      child.on('close', (code: number) => webview.postMessage({ command: 'buildStatus', text: `Build process exited with code ${code}` }));
+      child.stdout.on('data', (d: any) => webview.postMessage({ command: 'flashStatus', text: String(d).trim() }));
+      child.stderr.on('data', (d: any) => webview.postMessage({ command: 'flashStatus', text: String(d).trim() }));
+      child.on('close', (code: number) => webview.postMessage({ command: 'flashStatus', text: `Flash process exited with code ${code}` }));
       return;
     }
 
@@ -79,15 +79,15 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
               ports.push({ label: label.trim(), value: value });
             }
           } else {
-            output.appendLine('[buildFirmware] serialport list() not available; install @serialport/list or a compatible package');
+            output.appendLine('[flashFirmware] serialport list() not available; install @serialport/list or a compatible package');
           }
         } catch (e) {
-          output.appendLine('[buildFirmware] serialport list error: ' + String(e));
+          output.appendLine('[flashFirmware] serialport list error: ' + String(e));
         }
 
         webview.postMessage({ command: 'ports', ports });
       } catch (e) {
-        output.appendLine('[buildFirmware] requestPorts handler error: ' + String(e));
+        output.appendLine('[flashFirmware] requestPorts handler error: ' + String(e));
         webview.postMessage({ command: 'ports', ports: [] });
       }
       return;
@@ -109,7 +109,7 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
           webview.postMessage({ command: 'pickedFile', file: '' });
         }
       } catch (e) {
-        output.appendLine('[buildFirmware] pickFile handler error: ' + String(e));
+        output.appendLine('[flashFirmware] pickFile handler error: ' + String(e));
         webview.postMessage({ command: 'pickedFile', file: '' });
       }
       return;
@@ -117,7 +117,7 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
   };
 }
 
-export async function showBuildFirmware(context: vscode.ExtensionContext) {
+export async function showFlashFirmware(context: vscode.ExtensionContext) {
   // If global checks have not passed, disable this page and offer to open checks
   if (!projectConfigPassed) {
     const choice = await vscode.window.showWarningMessage(
@@ -132,8 +132,8 @@ export async function showBuildFirmware(context: vscode.ExtensionContext) {
   }
 
   const panel = vscode.window.createWebviewPanel(
-    'unirtosBuildFirmware',
-    'UniRTOS — Build Firmware',
+    'unirtosFlashFirmware',
+    'UniRTOS — Flash Firmware',
     vscode.ViewColumn.One,
     {
       enableScripts: true,
@@ -142,20 +142,10 @@ export async function showBuildFirmware(context: vscode.ExtensionContext) {
   );
 
   // prefer HTML under src/webview (like other pages), fallback to webview/ at repo root
-  const candidates = [
-    path.join(context.extensionPath, 'src', 'webview', 'build-firmware.html'),
-    path.join(context.extensionPath, 'webview', 'build-firmware.html')
-  ];
-  let html = '<p>Build page not found</p>';
-  for (const p of candidates) {
-    try {
-      if (fs.existsSync(p)) {
-        html = fs.readFileSync(p, 'utf8');
-        break;
-      }
-    } catch (e) {
-      // continue to next candidate
-    }
+  const file = path.join(context.extensionPath, 'src', 'webview', 'flash-firmware.html');
+  let html = '<p>Flash page not found</p>';
+  if (fs.existsSync(file)) {
+    html = fs.readFileSync(file, 'utf8');
   }
 
   // add header file
@@ -193,7 +183,7 @@ export async function showBuildFirmware(context: vscode.ExtensionContext) {
 
   panel.webview.html = html;
 
-  const output = vscode.window.createOutputChannel('UniRTOS Build');
+  const output = vscode.window.createOutputChannel('UniRTOS Flash Firmware');
   // keep the output channel hidden until user wants to view; we'll show on first debug log
 
   const handleWebviewMessage = createWebviewMessageHandler(panel, context, output);
@@ -202,4 +192,4 @@ export async function showBuildFirmware(context: vscode.ExtensionContext) {
 
 }
 
-export default showBuildFirmware;
+export default showFlashFirmware;
