@@ -1,0 +1,33 @@
+ Generate configuration file
+.\FlashToolCLI.exe --cfgfile F:\EC800Z\quec_download_usb.ini pkg2img
+ Establish connection
+.\FlashToolCLI.exe --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" probe
+ Burn partitions
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" burnone agentboot
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" burnone bootloader
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" burnone system
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" burnone cp_system
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" burnone pkgflx0
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" burnone pkgflx1
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" burnone pkgflx2
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" burnone pkgflx3
+ Reboot
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile F:\EC800Z\Tmp_config.ini --port="COM31" sysreset
+
+
+
+"C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini"
+1-
+.\FlashToolCLI.exe --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" pkg2img
+
+.\FlashToolCLI.exe --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" --port="COM31" probe
+
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" --port="COM31" burnone agentboot
+
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" --port="COM31" burnone bootloader
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" --port="COM31" burnone system
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" --port="COM31" burnone cp_system
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" --port="COM31" burnone pkgflx0
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" --port="COM31" burnone pkgflx1
+
+.\FlashToolCLI.exe --skipconnect 1 --cfgfile "C:\Users\hassan.mallah\ext\UniRTOS\unirtos\qos_build\release\EC800ZCNLFR01A01M04_BETA0403_OCPU\quec_download_usb.ini" --port="COM31" sysreset
