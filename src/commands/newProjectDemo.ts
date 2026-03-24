@@ -178,7 +178,6 @@ function updateSdkFiles(workspaceRoot: string, demoEntry?: any): boolean {
  */
 async function runBuildScript(workspaceRoot: string): Promise<boolean> {
   const output = vscode.window.createOutputChannel('UniRTOS Build');
-  output.show(true);
 
   const script = 'buildlib_unirtos.bat';
   const isWin = process.platform === 'win32';
@@ -190,7 +189,6 @@ async function runBuildScript(workspaceRoot: string): Promise<boolean> {
     cancellable: false
   }, async () => {
     return new Promise<boolean>((resolve) => {
-      output.appendLine(`Running: ${cmd}`);
       const child = exec(cmd, { cwd: workspaceRoot });
 
       if (child.stdout) child.stdout.on('data', (d) => output.append(d.toString()));
@@ -243,7 +241,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       vscode.window.showErrorMessage('Demo project does not have a repository URL configured.');
       return;
     }
-
 
     // check workspace + sdk folder
     let dest = path.join(workspaceRoot, 'qos_applications', 'apps');

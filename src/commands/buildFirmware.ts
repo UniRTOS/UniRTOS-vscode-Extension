@@ -40,7 +40,6 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
 
     if (msg.command === 'requestPorts') {
       try {
-        output.appendLine('[buildFirmware] requestPorts received');
         const ports: Array<{ label: string; value: string }> = [];
         try {
           // Try to load serialport and prefer a `list` method on the constructor.
@@ -75,7 +74,8 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
             const portList = await listFn();
             for (const p of portList) {
               const value = (p.path || p.comName || p.com) as string;
-              const label = ((p.manufacturer || p.vendorId || p.productId) ? `${p.manufacturer || ''} ` : '') + (p.path || p.comName || p.com || '') + (p.productId ? ` (${p.productId})` : '');
+              if (!p.manufacturer.toLowerCase().includes('quectel')) continue; // only include Quetcel devices
+              const label = `${p.friendlyName} (${p.path})`;
               ports.push({ label: label.trim(), value: value });
             }
           } else {
