@@ -92,6 +92,28 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
       }
       return;
     }
+
+    if (msg.command === 'pickFile') {
+      try {
+        const defaultUri = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0)
+          ? vscode.workspace.workspaceFolders[0].uri
+          : undefined;
+        const uris = await vscode.window.showOpenDialog({
+          canSelectFiles: true,
+          canSelectMany: false,
+          defaultUri
+        });
+        if (uris && uris.length > 0) {
+          webview.postMessage({ command: 'pickedFile', file: uris[0].fsPath });
+        } else {
+          webview.postMessage({ command: 'pickedFile', file: '' });
+        }
+      } catch (e) {
+        output.appendLine('[buildFirmware] pickFile handler error: ' + String(e));
+        webview.postMessage({ command: 'pickedFile', file: '' });
+      }
+      return;
+    }
   };
 }
 

@@ -28,7 +28,7 @@
   <div class="controls">
     <button id="backBtn" disabled>Back</button>
     <button id="nextBtn">Next</button>
-    <div class="step-indicator" id="stepIndicator">Step 1 / 3</div>
+    <div class="step-indicator" id="stepIndicator">Step 1 / 5</div>
     <div id="status" aria-live="polite"></div>
   </div>
 
@@ -50,15 +50,38 @@
     </div>
   </section>
 
+  <!-- Choose port -->
   <section id="tab3" class="tab-panel">
     <h2>Build</h2>
-    <p>Ready to build. Choose the device port and click Next to start the build.</p>
+    <p>Choose from the list after identifying QDLoader port.</p>
     <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
       <label for="portSelect">Select USB port</label>
       <select id="portSelect">
         <option value="">(scanning...)</option>
       </select>
       <button id="refreshPorts" style="background:#555;color:#fff;padding:8px 12px;border-radius:6px">Refresh Ports</button>
+    </div>
+  </section>
+
+  <!-- Choose config file -->
+  <section id="tab4" class="tab-panel">
+    <h2>Choose Config file</h2>
+    <p>Config file is used to flash the firmware to the module.<br>We found this file, or you can choose the file by yourself.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
+      <div id="selectedFile" style="color:#333">No file selected</div>
+      <div style="display:flex;gap:8px">
+        <button id="selectFileBtn" style="background:#007acc;color:#fff;padding:8px 12px;border-radius:6px">Select File</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Summary -->
+  <section id="tab5" class="tab-panel">
+    <h2>Summary</h2>
+    <p>Review your selected COM port and Config file before building.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
+      <div><strong>COM port:</strong> <span id="selectedPortSummary">(none)</span></div>
+      <div><strong>Config file:</strong> <span id="selectedFileSummary">(none)</span></div>
     </div>
   </section>
 
@@ -69,6 +92,9 @@
     const nextBtn = document.getElementById('nextBtn');
     const status = document.getElementById('status');
     const stepIndicator = document.getElementById('stepIndicator');
+    // track user selections for summary
+    let selectedPort = '';
+    let selectedFile = '';
 
     function showPanel(index) {
       panels.forEach((p, i) => p.classList.toggle('active', i === index));
@@ -89,6 +115,13 @@
         // request ports when showing step 3 (index 2)
         if (idx + 1 === 2 && vscode) {
           vscode.postMessage({ command: 'requestPorts' });
+        }
+        // when navigating to summary (step index 4), populate selections
+        if (idx + 1 === 4) {
+          const ps = document.getElementById('selectedPortSummary');
+          const fs = document.getElementById('selectedFileSummary');
+          if (ps) ps.textContent = selectedPort || '(none)';
+          if (fs) fs.textContent = selectedFile || '(none)';
         }
       } else {
         // last panel -> trigger build
@@ -130,7 +163,15 @@
             const opt = document.createElement('option'); opt.value = p.value || p.label || ''; opt.textContent = p.label || p.value || p;
             select.appendChild(opt);
           }
+          // set initial selected port and watch for changes
+          selectedPort = select.value || (select.options && select.options.length > 0 ? select.options[0].value : '');
+          select.addEventListener('change', () => { selectedPort = select.value; });
         }
+          }
+        else if (msg && msg.command === 'pickedFile') {
+          const sel = document.getElementById('selectedFile');
+            if (sel) sel.textContent = msg.file ? msg.file : 'No file selected';
+            selectedFile = msg.file || '';
         } else if (msg && msg.command === 'portsDebug') {
           const dbg = document.getElementById('portsDebug');
           if (!dbg) return;
@@ -141,6 +182,8 @@
 
     const refreshBtn = document.getElementById('refreshPorts');
     if (refreshBtn) refreshBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'requestPorts' }); });
+    const selectFileBtn = document.getElementById('selectFileBtn');
+    if (selectFileBtn) selectFileBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'pickFile' }); });
   </script>
 </body>
 </html>
