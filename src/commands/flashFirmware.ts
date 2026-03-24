@@ -3,38 +3,55 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { projectConfigPassed, showCheckRequirements } from './checkView';
 
+async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: vscode.ExtensionContext, output: vscode.OutputChannel) {
+  // run FlashToolCLI with the selected cfg file and stream output to the channel
+  try {
+    output.show(true);
+    const exe = path.join(context.extensionPath, 'src', 'data', 'Eigen_718', 'FlashToolCLI.exe');
+    const cfg = msg && msg.selectedFile ? String(msg.selectedFile) : '';
+    const cliCmd = `${exe} --cfgfile "${cfg}" pkg2img`;
+    output.appendLine(cliCmd);
+
+    if (!cfg) {
+      output.appendLine('[flashFirmware] No cfg file selected; aborting.');
+      webview.postMessage({ command: 'flashStatus', text: 'No cfg file selected.' });
+      return;
+    }
+
+    if (!fs.existsSync(exe)) {
+      output.appendLine(`[flashFirmware] FlashToolCLI not found at ${exe}`);
+      webview.postMessage({ command: 'flashStatus', text: 'FlashToolCLI not found.' });
+      return;
+    }
+
+    const spawn = require('child_process').spawn;
+    const child = spawn(exe, ['--cfgfile', cfg, 'pkg2img'], { cwd: path.dirname(exe) });
+
+    if (child.stdout) child.stdout.on('data', (d: any) => output.append(String(d)));
+    if (child.stderr) child.stderr.on('data', (d: any) => output.append(String(d)));
+
+    child.on('error', (err: any) => {
+      output.appendLine('[flashFirmware] process error: ' + (err && err.message ? err.message : String(err)));
+      webview.postMessage({ command: 'flashStatus', text: 'Flash process error.' });
+    });
+
+    child.on('close', (code: number) => {
+      output.appendLine(`[flashFirmware] process exited with code ${code}`);
+      webview.postMessage({ command: 'flashStatus', text: `FlashToolCLI exited with code ${code}` });
+    });
+  } catch (e) {
+    output.appendLine('[flashFirmware] failed to start FlashToolCLI: ' + String(e));
+    webview.postMessage({ command: 'flashStatus', text: 'Failed to start FlashToolCLI.' });
+  }
+}
+
 function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode.ExtensionContext, output: vscode.OutputChannel) {
   return async function handleWebviewMessage(msg: any) {
     if (!msg) return;
     const webview = panel.webview;
 
     if (msg.command === 'flashFirmware') {
-      webview.postMessage({ command: 'flashStatus', text: 'Locating flash task...' });
-
-      try {
-        const tasks = await vscode.tasks.fetchTasks();
-        const found = tasks.find(t => t.name === 'compile' || t.name === 'npm: compile' || (t.definition && (t.definition.label === 'compile')));
-        if (found) {
-          webview.postMessage({ command: 'flashStatus', text: 'Starting configured "compile" task...' });
-          const exec = await vscode.tasks.executeTask(found);
-          const disp = vscode.tasks.onDidEndTaskProcess(e => {
-            if (e.execution.task === found) {
-              webview.postMessage({ command: 'flashStatus', text: `Flash finished (exit code ${e.exitCode})` });
-              disp.dispose();
-            }
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn('Error while fetching tasks', e);
-      }
-
-      // Fallback: run npm script directly in extension root
-      webview.postMessage({ command: 'flashStatus', text: 'No configured task found — running `npm run compile`...' });
-      const child = require('child_process').exec('npm run compile', { cwd: context.extensionPath });
-      child.stdout.on('data', (d: any) => webview.postMessage({ command: 'flashStatus', text: String(d).trim() }));
-      child.stderr.on('data', (d: any) => webview.postMessage({ command: 'flashStatus', text: String(d).trim() }));
-      child.on('close', (code: number) => webview.postMessage({ command: 'flashStatus', text: `Flash process exited with code ${code}` }));
+      await handleFlashFirmware(msg, webview, context, output);
       return;
     }
 

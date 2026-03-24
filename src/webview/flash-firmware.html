@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>UniRTOS Build</title>
+  <title>UniRTOS Flash Firmware</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial; padding: 20px; color: #222 }
     h1 { color: #0066cc }
@@ -13,7 +13,6 @@
     /* page-specific */
     /* full-page layout (no card) - content flows like other webviews */
     button { background:#007acc;color:#fff;border:0;padding:10px 16px;border-radius:6px;font-size:14px;cursor:pointer }
-    #status{margin-top:12px;color:#555}
     .tab-panel{display:none;margin-top:12px}
     .tab-panel.active{display:block}
     .step-image{max-width:600px;width:100%;height:auto;display:block}
@@ -29,7 +28,6 @@
     <button id="backBtn" disabled>Back</button>
     <button id="nextBtn">Next</button>
     <div class="step-indicator" id="stepIndicator">Step 1 / 5</div>
-    <div id="status" aria-live="polite"></div>
   </div>
 
   <pre id="portsDebug" style="white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:8px;display:none;border:1px solid #eee;padding:8px;border-radius:4px;background:#fafafa"></pre>
@@ -42,29 +40,8 @@
     </div>
   </section>
 
+    <!-- Choose config file -->
   <section id="tab2" class="tab-panel">
-    <h2>QD Loader Port</h2>
-    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
-      <img id="qdloaderImage" class="step-image" src="%%QDLOADER_IMAGE%%" alt="QD Loader port" />
-      <p style="font-weight:600">2. Open Device Manager, find Quectel QDLoader Port under “Ports (COM & LPT)”, and note the assigned COM port number.</p>
-    </div>
-  </section>
-
-  <!-- Choose port -->
-  <section id="tab3" class="tab-panel">
-    <h2>Build</h2>
-    <p>Choose from the list after identifying QDLoader port.</p>
-    <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
-      <label for="portSelect">Select USB port</label>
-      <select id="portSelect">
-        <option value="">(scanning...)</option>
-      </select>
-      <button id="refreshPorts" style="background:#555;color:#fff;padding:8px 12px;border-radius:6px">Refresh Ports</button>
-    </div>
-  </section>
-
-  <!-- Choose config file -->
-  <section id="tab4" class="tab-panel">
     <h2>Choose Config file</h2>
     <p>Config file is used to flash the firmware to the module.<br>We found this file, or you can choose the file by yourself.</p>
     <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
@@ -75,10 +52,32 @@
     </div>
   </section>
 
+  <!-- How-to QDLoader port -->
+  <section id="tab3" class="tab-panel">
+    <h2>QD Loader Port</h2>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <img id="qdloaderImage" class="step-image" src="%%QDLOADER_IMAGE%%" alt="QD Loader port" />
+      <p style="font-weight:600">2. Open Device Manager, find Quectel QDLoader Port under “Ports (COM & LPT)”, and note the assigned COM port number.</p>
+    </div>
+  </section>
+
+  <!-- Choose port -->
+  <section id="tab4" class="tab-panel">
+    <h2>Choose Port</h2>
+    <p>Choose from the list after identifying QDLoader port.<br><br>Please note, once EG800 enters download mode, you have 15 seconds to start the procress, or it will restart and exit download mode.</p>
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
+      <label for="portSelect">Select USB port</label>
+      <select id="portSelect">
+        <option value="">(scanning...)</option>
+      </select>
+      <button id="refreshPorts" style="background:#555;color:#fff;padding:8px 12px;border-radius:6px">Refresh Ports</button>
+    </div>
+  </section>
+
   <!-- Summary -->
   <section id="tab5" class="tab-panel">
     <h2>Summary</h2>
-    <p>Review your selected COM port and Config file before building.</p>
+    <p>Review your selected COM port and Config file before flashing.</p>
     <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
       <div><strong>COM port:</strong> <span id="selectedPortSummary">(none)</span></div>
       <div><strong>Config file:</strong> <span id="selectedFileSummary">(none)</span></div>
@@ -90,7 +89,6 @@
     const panels = Array.from(document.querySelectorAll('.tab-panel'));
     const backBtn = document.getElementById('backBtn');
     const nextBtn = document.getElementById('nextBtn');
-    const status = document.getElementById('status');
     const stepIndicator = document.getElementById('stepIndicator');
     // track user selections for summary
     let selectedPort = '';
@@ -100,7 +98,7 @@
       panels.forEach((p, i) => p.classList.toggle('active', i === index));
       stepIndicator.textContent = `Step ${index + 1} / ${panels.length}`;
       backBtn.disabled = index === 0;
-      nextBtn.textContent = index === panels.length - 1 ? 'Build' : 'Next';
+      nextBtn.textContent = index === panels.length - 1 ? 'Flash Firmware' : 'Next';
     }
 
     function currentIndex() {
@@ -111,7 +109,6 @@
       const idx = currentIndex();
       if (idx < panels.length - 1) {
         showPanel(idx + 1);
-        status.textContent = '';
         // request ports when showing step 3 (index 2)
         if (idx + 1 === 2 && vscode) {
           vscode.postMessage({ command: 'requestPorts' });
@@ -124,8 +121,8 @@
           if (fs) fs.textContent = selectedFile || '(none)';
         }
       } else {
-        // last panel -> trigger build
-        triggerBuild();
+        // last panel -> trigger flash
+        triggerFlash();
       }
     });
 
@@ -133,24 +130,18 @@
       const idx = currentIndex();
       if (idx > 0) {
         showPanel(idx - 1);
-        status.textContent = '';
       }
     });
 
-    function triggerBuild() {
+    function triggerFlash() {
       if (vscode) {
-        vscode.postMessage({ command: 'flashFirmware' });
-        status.textContent = 'Flash requested...';
-      } else {
-        status.textContent = 'VS Code API not available (preview).';
+        vscode.postMessage({ command: 'flashFirmware', selectedPort: selectedPort, selectedFile: selectedFile });
       }
     }
 
     window.addEventListener('message', event => {
       const msg = event.data;
-      if (msg && msg.command === 'flashStatus') {
-        status.textContent = msg.text;
-      } else if (msg && msg.command === 'ports') {
+     if (msg && msg.command === 'ports') {
         const select = document.getElementById('portSelect');
         if (!select) return;
         // clear
