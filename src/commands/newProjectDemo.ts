@@ -85,18 +85,14 @@ function removeUnirtosPrefix(dest: string, workspaceRoot: string, id: string): s
 }
 
 /**
- * Append `text` to the bottom of `targetPath` if `uniqueCheck` isn't already present.
+ * Append `text` to the bottom of `targetPath`.
  * Creates parent directories and the file when needed.
- * Returns true if text was added, false if it already existed or on error.
+ * Returns true if text was added, false on error.
  */
-function appendTextToFileBottom(targetPath: string, text: string, uniqueCheck?: string): boolean {
+function appendTextToFileBottom(targetPath: string, text: string): boolean {
   try {
-    const check = uniqueCheck || text;
     if (fs.existsSync(targetPath)) {
       const cur = fs.readFileSync(targetPath, 'utf8');
-      if (cur.includes(check)) {
-        return false;
-      }
       fs.writeFileSync(targetPath, cur + '\n' + text, 'utf8');
     } else {
       return false;
@@ -134,7 +130,7 @@ function updateSdkFiles(workspaceRoot: string, demoEntry?: any): boolean {
     // step 4: Kconfig
     let filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'Kconfig');
     let block = demoEntry.config.Kconfig;
-    if (!appendTextToFileBottom(filePath, block, 'config QAPP_HELLO_WORLD_DEMO_FUNC')) return false;
+    if (!appendTextToFileBottom(filePath, block)) return false;
 
     // step 5: CMakeLists
     filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'CMakeLists.txt');
@@ -227,8 +223,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
     return;
   }
 
-  const workspaceRoot = folders[0].uri.fsPath;
-
   // Read demo-projects.json to get repo URL
   try {
     const demoFile = path.join(context.extensionPath, 'src', 'data', 'demo-projects.json');
@@ -243,14 +237,42 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
     }
 
     // check workspace + sdk folder
-    let dest = path.join(workspaceRoot, 'qos_applications', 'apps');
-    if (!fs.existsSync(dest)) {
+   let workspaceRoot = folders[0].uri.fsPath;
+    // Look for qos_applications/apps at workspace root first, then one level deeper.
+    let sdkRoot = workspaceRoot;
+    let sdkApps = path.join(sdkRoot, 'qos_applications', 'apps');
+    if (!fs.existsSync(sdkApps)) {
+      try {
+        const entries = fs.readdirSync(workspaceRoot);
+        for (const e of entries) {
+          const candidate = path.join(workspaceRoot, e);
+          try {
+            const candidateApps = path.join(candidate, 'qos_applications', 'apps');
+            if (fs.statSync(candidate).isDirectory() && fs.existsSync(candidateApps)) {
+              sdkRoot = candidate;
+              sdkApps = candidateApps;
+              vscode.window.showInformationMessage(`Detected SDK under ${sdkRoot}`);
+              break;
+            }
+          } catch (err) {
+            // ignore entry errors
+          }
+        }
+      } catch (e) {
+        // ignore read errors
+      }
+    }
+
+    if (!fs.existsSync(sdkApps)) {
       vscode.window.showErrorMessage('SDK folder does not exist.');
       return;
     }
 
+    // Update workspaceRoot to the detected SDK root so downstream operations use correct base
+    workspaceRoot = sdkRoot;
+
     // Destination: <workspaceRoot>/qos_applications/apps/<id>
-    dest = path.join(workspaceRoot, 'qos_applications', 'apps', id);
+    let dest = path.join(workspaceRoot, 'qos_applications', 'apps', id);
     if (fs.existsSync(dest)) {
       const choice = await vscode.window.showWarningMessage(
         `Destination ${dest} already exists. Overwrite?`,
@@ -268,7 +290,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
         // fallthrough
       }
     }
-
 
     await vscode.window.withProgress({
       location: vscode.ProgressLocation.Notification,
@@ -290,6 +311,7 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
     const finalDest = removeUnirtosPrefix(dest, workspaceRoot, id);
 
     if (finalDest == dest){
+      vscode.window.showErrorMessage('Failed to update project name');
       return;
     }
 
