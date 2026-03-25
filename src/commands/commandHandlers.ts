@@ -40,7 +40,7 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
             return;
           default:
           const labels = labelsArr.join(', ');
-          vscode.window.showInformationMessage(`Running: ${labels || 'none'}`);
+          vscode.window.showInformationMessage(`Coming soon: ${labels || 'none'}`);
           break;
       }
 

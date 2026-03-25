@@ -27,11 +27,12 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
   getChildren(element?: CommandItem): Thenable<CommandItem[]> {
     const items = [
       new CommandItem('Guide - How to'),
+      new CommandItem('Check Requirements'),
       new CommandItem('New Project'),
       new CommandItem('New Project From Demo'),
-      new CommandItem('Check Requirements'),
       new CommandItem('Open UniRTOS Project'),
-      new CommandItem('Flash UniRTOS Firmware')
+      new CommandItem('Flash UniRTOS Firmware'),
+      new CommandItem('Debug UniRTOS Logs')
     ];
     return Promise.resolve(items);
   }
