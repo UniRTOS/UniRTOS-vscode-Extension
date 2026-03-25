@@ -9,39 +9,71 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
     output.show(true);
     const exe = path.join(context.extensionPath, 'src', 'data', 'Eigen_718', 'FlashToolCLI.exe');
     const cfg = msg && msg.selectedFile ? String(msg.selectedFile) : '';
-    const cliCmd = `${exe} --cfgfile "${cfg}" pkg2img`;
-    output.appendLine(cliCmd);
-
+    const port = msg && msg.selectedPort ? String(msg.selectedPort) : '';
+    // require a cfg file
     if (!cfg) {
       output.appendLine('[flashFirmware] No cfg file selected; aborting.');
-      webview.postMessage({ command: 'flashStatus', text: 'No cfg file selected.' });
       return;
     }
 
-    if (!fs.existsSync(exe)) {
-      output.appendLine(`[flashFirmware] FlashToolCLI not found at ${exe}`);
-      webview.postMessage({ command: 'flashStatus', text: 'FlashToolCLI not found.' });
-      return;
-    }
+    // Build a list of commands to run. 
+    const commands: Array<{ exe: string; args: string[] }> = [];
+
+    commands.push({ exe, args: ['--cfgfile', cfg, '--port', port, 'probe'] }); // Establish connection
+    commands.push({ exe, args: ['--cfgfile', cfg, 'pkg2img'] }); // Generate configuration file
+
+    // Burn partitions
+    commands.push({ exe, args: ['--skipconnect', '1', '--cfgfile', cfg, '--port', port, 'burnone', 'agentboot'] });
+    commands.push({ exe, args: ['--skipconnect', '1', '--cfgfile', cfg, '--port', port, 'burnone', 'bootloader'] });
+    commands.push({ exe, args: ['--skipconnect', '1', '--cfgfile', cfg, '--port', port, 'burnone', 'system'] });
+    commands.push({ exe, args: ['--skipconnect', '1', '--cfgfile', cfg, '--port', port, 'burnone', 'cp_system'] });
+    commands.push({ exe, args: ['--skipconnect', '1', '--cfgfile', cfg, '--port', port, 'burnone', 'pkgflx0'] });
+    commands.push({ exe, args: ['--skipconnect', '1', '--cfgfile', cfg, '--port', port, 'burnone', 'pkgflx1'] });
+
+    commands.push({ exe, args: ['--skipconnect', '1', '--cfgfile', cfg, '--port', port, 'sysreset'] }); // Reboot
 
     const spawn = require('child_process').spawn;
-    const child = spawn(exe, ['--cfgfile', cfg, 'pkg2img'], { cwd: path.dirname(exe) });
 
-    if (child.stdout) child.stdout.on('data', (d: any) => output.append(String(d)));
-    if (child.stderr) child.stderr.on('data', (d: any) => output.append(String(d)));
+    async function runCommand(cmd: { exe: string; args: string[] }) {
+      return new Promise<number>((resolve) => {
+        try {
+          output.appendLine('> ' + [cmd.exe].concat(cmd.args || []).join(' '));
+          const child = spawn(cmd.exe, cmd.args || [], { cwd: path.dirname(cmd.exe) || undefined });
 
-    child.on('error', (err: any) => {
-      output.appendLine('[flashFirmware] process error: ' + (err && err.message ? err.message : String(err)));
-      webview.postMessage({ command: 'flashStatus', text: 'Flash process error.' });
-    });
+          if (child.stdout) child.stdout.on('data', (d: any) => output.append(String(d)));
+          if (child.stderr) child.stderr.on('data', (d: any) => output.append(String(d)));
 
-    child.on('close', (code: number) => {
-      output.appendLine(`[flashFirmware] process exited with code ${code}`);
-      webview.postMessage({ command: 'flashStatus', text: `FlashToolCLI exited with code ${code}` });
-    });
+          child.on('error', (err: any) => {
+            output.appendLine('[flashFirmware] process error: ' + (err && err.message ? err.message : String(err)));
+            resolve(-1);
+          });
+
+          child.on('close', (code: number) => {
+            output.appendLine(`[flashFirmware] process exited with code ${code}`);
+            resolve(typeof code === 'number' ? code : -1);
+          });
+        } catch (e) {
+          output.appendLine('[flashFirmware] runCommand exception: ' + String(e));
+          resolve(-1);
+        }
+      });
+    }
+
+    // Execute commands sequentially
+    for (const c of commands) {
+      // If exe is the packaged FlashToolCLI, validate it exists
+      if (c.exe === exe && !fs.existsSync(c.exe)) {
+        output.appendLine(`[flashFirmware] FlashToolCLI not found at ${c.exe}`);
+        return;
+      }
+      const code = await runCommand(c);
+      if (code !== 0) {
+        return;
+      }
+    }
+
   } catch (e) {
     output.appendLine('[flashFirmware] failed to start FlashToolCLI: ' + String(e));
-    webview.postMessage({ command: 'flashStatus', text: 'Failed to start FlashToolCLI.' });
   }
 }
 
