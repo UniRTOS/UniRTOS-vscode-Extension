@@ -8,6 +8,20 @@ import { showFlashFirmware } from './flashFirmware';
 
 export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
 
+  // Open url using integrated browser or system browser
+  async function openUrlInIntegratedBrowser(url: string) {
+    try {
+      await vscode.commands.executeCommand('workbench.action.browser.open', url);
+    } catch (e) {
+      try {
+        await vscode.env.openExternal(vscode.Uri.parse(url));
+      } catch (_) {
+        vscode.window.showErrorMessage('Unable to open the URL. Please try again later.');
+        
+      }
+    }
+  }
+
   context.subscriptions.push(vscode.commands.registerCommand('unirtos.runCommand', (item) => {
     (async () => {
       const selection = Array.isArray(item) ? item : (item ? [item] : treeView.selection);
@@ -38,6 +52,12 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
           case 'Flash UniRTOS Firmware':
             showFlashFirmware(context);
             return;
+          case 'UniRTOS github':
+              await openUrlInIntegratedBrowser('https://github.com/UniRTOS');
+              return;
+          case 'UniRTOS Forum':
+              await openUrlInIntegratedBrowser('https://forums.quectel.com/categories');
+              return;
           default:
           const labels = labelsArr.join(', ');
           vscode.window.showInformationMessage(`Coming soon: ${labels || 'none'}`);
