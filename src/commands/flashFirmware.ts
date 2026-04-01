@@ -19,8 +19,8 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
     // Build a list of commands to run. 
     const commands: Array<{ exe: string; args: string[] }> = [];
 
-    commands.push({ exe, args: ['--cfgfile', cfg, '--port', port, 'probe'] }); // Establish connection
     commands.push({ exe, args: ['--cfgfile', cfg, 'pkg2img'] }); // Generate configuration file
+    commands.push({ exe, args: ['--cfgfile', cfg, '--port', port, 'probe'] }); // Establish connection
 
     // Burn partitions
     commands.push({ exe, args: ['--skipconnect', '1', '--cfgfile', cfg, '--port', port, 'burnone', 'agentboot'] });

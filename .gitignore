@@ -140,3 +140,4 @@ vite.config.ts.timestamp-*
 
 # local files
 src/info
+*.vsix

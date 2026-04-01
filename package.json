@@ -2,7 +2,7 @@
   "name": "unirtos",
   "displayName": "UniRTOS",
   "icon": "images/icon.png",
-  "publisher": "hassan.mallah",
+	"publisher": "Quectel",
   "version": "0.0.1",
   "scripts": {
     "compile": "tsc -p .",
