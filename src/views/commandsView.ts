@@ -1,14 +1,16 @@
 import * as vscode from 'vscode';
 
 export class CommandItem extends vscode.TreeItem {
-  constructor(public readonly label: string) {
-    super(label);
-    this.command = {
-      command: 'unirtos.runCommand',
-      title: 'Run Command',
-      arguments: [this]
-    };
-    this.contextValue = 'unirtosCommand';
+  constructor(public readonly label: string, collapsibleState?: vscode.TreeItemCollapsibleState, public readonly isGroup: boolean = false) {
+    super(label, collapsibleState ?? vscode.TreeItemCollapsibleState.None);
+    if (!isGroup) {
+      this.command = {
+        command: 'unirtos.runCommand',
+        title: 'Run Command',
+        arguments: [this]
+      };
+    }
+    this.contextValue = isGroup ? 'unirtosGroup' : 'unirtosCommand';
   }
 }
 
@@ -25,17 +27,37 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
   }
 
   getChildren(element?: CommandItem): Thenable<CommandItem[]> {
-    const items = [
-      new CommandItem('Guide - How to'),
-      new CommandItem('Check Requirements'),
-      new CommandItem('New Project'),
-      new CommandItem('New Project From Demo'),
-      new CommandItem('Open UniRTOS Project'),
-      new CommandItem('Flash UniRTOS Firmware'),
-      new CommandItem('Debug UniRTOS Logs'),
-      new CommandItem('UniRTOS github'),
-      new CommandItem('UniRTOS Forum')
-    ];
-    return Promise.resolve(items);
+    if (!element) {
+      // root: return two group nodes
+      const groups = [
+        new CommandItem('Commands', vscode.TreeItemCollapsibleState.Collapsed, true),
+        new CommandItem('Links', vscode.TreeItemCollapsibleState.Collapsed, true)
+      ];
+      return Promise.resolve(groups);
+    }
+
+    // children for each group
+    if (element.label === 'Commands') {
+      const cmds = [
+        new CommandItem('Guide - How to'),
+        new CommandItem('Check Requirements'),
+        new CommandItem('New Project'),
+        new CommandItem('New Project From Demo'),
+        new CommandItem('Open UniRTOS Project'),
+        new CommandItem('Flash UniRTOS Firmware'),
+        new CommandItem('Debug UniRTOS Logs')
+      ];
+      return Promise.resolve(cmds);
+    }
+
+    if (element.label === 'Links') {
+      const links = [
+        new CommandItem('UniRTOS github'),
+        new CommandItem('UniRTOS Forum')
+      ];
+      return Promise.resolve(links);
+    }
+
+    return Promise.resolve([]);
   }
 }
