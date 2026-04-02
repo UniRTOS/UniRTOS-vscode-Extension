@@ -27,6 +27,7 @@
   </div>
   <div class="actions">
     <button id="cancel">Cancel</button>
+    <button id="open-demo">Demo projects</button>
     <button id="create">Continue</button>
   </div>
 
@@ -42,6 +43,10 @@
 
     document.getElementById('cancel').addEventListener('click', () => {
       vscode.postMessage({ type: 'cancel' });
+    });
+
+    document.getElementById('open-demo').addEventListener('click', () => {
+      vscode.postMessage({ type: 'openDemo' });
     });
 
     document.getElementById('create').addEventListener('click', () => {

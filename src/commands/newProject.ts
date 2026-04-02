@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
+import { showNewProjectDemo } from './newProjectDemo';
 
 export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
   // show to user list of platforms and models to choose and download the sdk
@@ -106,6 +107,16 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
 
     if (msg.type === 'cancel') {
       panel.dispose();
+      return;
+    }
+    
+    if (msg.type === 'openDemo') {
+      // open the demo page (reuses existing demo handler)
+      try {
+        showNewProjectDemo(context);
+      } catch (e) {
+        console.warn('Failed to open demo page:', e);
+      }
       return;
     }
   });
