@@ -25,6 +25,13 @@
     <label for="model">Model (optional)</label>
     <select id="model"><option value="">— none —</option></select>
   </div>
+  <div class="row">
+    <label for="targetDir">Save location (where SDK will be cloned)</label>
+    <div style="display:flex; gap:8px;">
+      <input id="targetDir" type="text" readonly style="flex:1; padding:8px" placeholder="Select folder..." />
+      <button id="choose-dir" style="width:120px">Choose...</button>
+    </div>
+  </div>
   <div class="actions">
     <button id="cancel">Cancel</button>
     <button id="open-demo">Demo projects</button>
@@ -49,10 +56,15 @@
       vscode.postMessage({ type: 'openDemo' });
     });
 
+    document.getElementById('choose-dir').addEventListener('click', () => {
+      vscode.postMessage({ type: 'chooseDir' });
+    });
+
     document.getElementById('create').addEventListener('click', () => {
       const platform = document.getElementById('platform').value;
       const model = document.getElementById('model').value;
-      vscode.postMessage({ type: 'create', platform, model });
+      const targetDir = document.getElementById('targetDir').value;
+      vscode.postMessage({ type: 'create', platform: platform, model: model, targetDir: targetDir });
     });
 
     // accept messages from extension to populate UI
@@ -73,6 +85,10 @@
         msg.models.forEach(m => {
           const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSel.appendChild(opt);
         });
+      }
+      if (msg.type === 'setTargetDir') {
+        const input = document.getElementById('targetDir');
+        if (input) input.value = msg.path || '';
       }
     });
   </script>

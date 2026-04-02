@@ -79,9 +79,23 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
       return;
     }
 
+    if (msg.type === 'chooseDir') {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: 'Select folder to save SDK'
+      });
+      if (uris && uris.length > 0) {
+        panel.webview.postMessage({ type: 'setTargetDir', path: uris[0].fsPath });
+      }
+      return;
+    }
+
     if (msg.type === 'create') {
       const pickedPlatformKey = msg.platform as string | undefined;
       const pickedModel = msg.model as string | undefined;
+      const pickedTargetDir = msg.targetDir as string | undefined;
       let sdkUrl: string | undefined;
       if (pickedPlatformKey) {
         const modelsRaw = platforms[pickedPlatformKey];
@@ -96,10 +110,9 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
           : `Selected: ${pickedPlatformKey} / ${pickedModel}`
         : `Selected: ${pickedPlatformKey}`;
       console.log(infoMsg);
-      vscode.window.showInformationMessage(infoMsg);
 
       if (sdkUrl) {
-        await downloadAndCloneSdk(sdkUrl);
+        await downloadAndCloneSdk(sdkUrl, pickedTargetDir);
       }
       panel.dispose();
       return;
@@ -124,21 +137,17 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   return true;
 }
 
-export async function downloadAndCloneSdk(sdkUrl: string): Promise<boolean> {
+export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string): Promise<boolean> {
   if (!sdkUrl) return false;
 
-  const uri = await vscode.window.showOpenDialog({
-    canSelectFiles: false,
-    canSelectFolders: true,
-    canSelectMany: false,
-    openLabel: 'Select folder to save SDK'
-  });
-  if (!uri || uri.length === 0) return false;
-
-  const targetDir = uri[0].fsPath;
+  
+  if (!targetDir) {
+    vscode.window.showWarningMessage('Please select a target directory to clone the SDK repository.');
+    return false;
+  }
   const repoNameMatch = sdkUrl.match(/\/([^\/]+?)(?:\.git)?$/);
   const repoName = repoNameMatch ? repoNameMatch[1].replace(/\.git$/, '') : 'repo';
-  const dest = path.join(targetDir, repoName);
+  const dest = path.join(targetDir as string, repoName);
 
   if (fs.existsSync(dest)) {
     const overwrite = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: `Folder ${dest} exists. Remove and re-clone?`, canPickMany: false });
@@ -148,7 +157,7 @@ export async function downloadAndCloneSdk(sdkUrl: string): Promise<boolean> {
 
   const cloneCmd = `git clone ${sdkUrl} "${dest}"`;
   const p = new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
-    exec(cloneCmd, { cwd: targetDir }, (error, stdout, stderr) => {
+    exec(cloneCmd, { cwd: targetDir as string }, (error, stdout, stderr) => {
       if (error) resolve({ code: (error as any).code ?? 1, stdout: stdout ?? '', stderr: stderr ?? '' });
       else resolve({ code: 0, stdout: stdout ?? '', stderr: stderr ?? '' });
     });
