@@ -24,51 +24,91 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     return true;
   }
 
-  const pickedPlatform = await vscode.window.showQuickPick(
-    platformKeys, { placeHolder: 'Please choose platform', canPickMany: false }
-  );
-  if (!pickedPlatform) return true;
-
-  const pickedPlatformKey = Array.isArray(pickedPlatform) ? pickedPlatform[0] : pickedPlatform;
-  if (!pickedPlatformKey) return true;
-
-  // support platforms where models are either an array or an object mapping
-  const modelsRaw = platforms[pickedPlatformKey];
-  let models: string[] = [];
-  if (Array.isArray(modelsRaw)) {
-    models = modelsRaw;
-  } else if (modelsRaw && typeof modelsRaw === 'object') {
-    models = Object.keys(modelsRaw as Record<string, unknown>);
-  }
-
-  let pickedModel: string | undefined;
-  if (models.length > 0) {
-    const chosen = await vscode.window.showQuickPick(models, { placeHolder: `Select model for ${pickedPlatformKey}`, canPickMany: false });
-    if (!chosen) {
-      vscode.window.showInformationMessage('New Project cancelled');
-      return true;
+  // Instead of quick pick, open a webview to present platforms/models
+  const panel = vscode.window.createWebviewPanel(
+    'unirtosNewProject',
+    'UniRTOS — New Project',
+    vscode.ViewColumn.One,
+    {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'src', 'webview'))]
     }
-    pickedModel = Array.isArray(chosen) ? chosen[0] : chosen;
+  );
+
+  const file = path.join(context.extensionPath, 'src', 'webview', 'new-project.html');
+  let html = '<p>New project UI not found</p>';
+  try {
+    html = fs.readFileSync(file, 'utf8');
+  } catch (e) {
+    console.error('Failed to read new-project.html', e);
   }
 
-  // attempt to get a URL/value for the chosen model when models are provided as a mapping
-  let sdkUrl: string | undefined;
-  if (modelsRaw && typeof modelsRaw === 'object' && !Array.isArray(modelsRaw) && pickedModel) {
-    sdkUrl = (modelsRaw as Record<string, unknown>)[pickedModel] as string | undefined;
+  // inject header fragment if available (uses <div id="header-root"></div> in HTML)
+  try {
+    const headerFile = path.join(context.extensionPath, 'src', 'webview', 'header.html');
+    const headerHtml = fs.readFileSync(headerFile, 'utf8');
+    html = html.replace('<div id="header-root"></div>', headerHtml);
+  } catch (e) {
+    console.warn('Header fragment not injected into new-project.html:', e);
   }
 
-  const msg = pickedModel
-    ? sdkUrl
-      ? `Selected: ${pickedPlatformKey} / ${pickedModel} — ${sdkUrl}`
-      : `Selected: ${pickedPlatformKey} / ${pickedModel}`
-    : `Selected: ${pickedPlatformKey}`;
-  console.log(msg);
-  vscode.window.showInformationMessage(msg);
+  panel.webview.html = html;
 
-  // if we have an sdk URL, offer to download/clone it
-  if (sdkUrl) {
-    await downloadAndCloneSdk(sdkUrl);
-  }
+  // send platforms when webview is ready or on-demand
+  const sendPlatforms = () => {
+    panel.webview.postMessage({ type: 'setPlatforms', platforms: platformKeys });
+  };
+
+  panel.webview.onDidReceiveMessage(async (msg) => {
+    if (!msg || !msg.type) return;
+    if (msg.type === 'ready') {
+      sendPlatforms();
+      return;
+    }
+    
+    if (msg.type === 'platformChanged') {
+      const selected = msg.value as string | undefined;
+      let models: string[] = [];
+      if (selected) {
+        const modelsRaw = platforms[selected];
+        if (Array.isArray(modelsRaw)) models = modelsRaw as string[];
+        else if (modelsRaw && typeof modelsRaw === 'object') models = Object.keys(modelsRaw as Record<string, unknown>);
+      }
+      panel.webview.postMessage({ type: 'setModels', models });
+      return;
+    }
+
+    if (msg.type === 'create') {
+      const pickedPlatformKey = msg.platform as string | undefined;
+      const pickedModel = msg.model as string | undefined;
+      let sdkUrl: string | undefined;
+      if (pickedPlatformKey) {
+        const modelsRaw = platforms[pickedPlatformKey];
+        if (modelsRaw && typeof modelsRaw === 'object' && !Array.isArray(modelsRaw) && pickedModel) {
+          sdkUrl = (modelsRaw as Record<string, unknown>)[pickedModel] as string | undefined;
+        }
+      }
+
+      const infoMsg = pickedModel
+        ? sdkUrl
+          ? `Selected: ${pickedPlatformKey} / ${pickedModel} — ${sdkUrl}`
+          : `Selected: ${pickedPlatformKey} / ${pickedModel}`
+        : `Selected: ${pickedPlatformKey}`;
+      console.log(infoMsg);
+      vscode.window.showInformationMessage(infoMsg);
+
+      if (sdkUrl) {
+        await downloadAndCloneSdk(sdkUrl);
+      }
+      panel.dispose();
+      return;
+    }
+
+    if (msg.type === 'cancel') {
+      panel.dispose();
+      return;
+    }
+  });
 
   return true;
 }
