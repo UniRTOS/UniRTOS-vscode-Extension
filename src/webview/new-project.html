@@ -30,11 +30,11 @@
     <div style="display:flex; gap:8px;">
       <input id="targetDir" type="text" readonly style="flex:1; padding:8px" placeholder="Select folder..." />
       <button id="choose-dir" style="width:120px">Choose...</button>
+      <button id="open-demo" style="width:120px">Demo projects</button>
     </div>
   </div>
   <div class="actions">
     <button id="cancel">Cancel</button>
-    <button id="open-demo">Demo projects</button>
     <button id="create">Continue</button>
   </div>
 
@@ -64,6 +64,17 @@
       const platform = document.getElementById('platform').value;
       const model = document.getElementById('model').value;
       const targetDir = document.getElementById('targetDir').value;
+
+      const missing = [];
+      if (!platform) missing.push('platform');
+      if (!model) missing.push('model');
+      if (!targetDir) missing.push('save location');
+
+      if (missing.length > 0) {
+        vscode.postMessage({ type: 'showMessage', level: 'warning', text: `Please select: ${missing.join(', ')}` });
+        return;
+      }
+
       vscode.postMessage({ type: 'create', platform: platform, model: model, targetDir: targetDir });
     });
 

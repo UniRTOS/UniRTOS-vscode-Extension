@@ -92,6 +92,20 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
       return;
     }
 
+    // show message from webview (info/warning/error)
+    if (msg.type === 'showMessage') {
+      try {
+        const level = (msg.level || 'info') as string;
+        const text = msg.text || '';
+        if (level === 'warning') vscode.window.showWarningMessage(text);
+        else if (level === 'error') vscode.window.showErrorMessage(text);
+        else vscode.window.showInformationMessage(text);
+      } catch (e) {
+        console.warn('Failed to show message from webview:', e);
+      }
+      return;
+    }
+
     if (msg.type === 'create') {
       const pickedPlatformKey = msg.platform as string | undefined;
       const pickedModel = msg.model as string | undefined;
