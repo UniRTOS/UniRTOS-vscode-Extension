@@ -9,7 +9,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial; padding: 12px; }
     .row { margin-bottom: 8px; }
     label { display:block; font-weight:600; margin-bottom:4px }
-    select, button { width:100%; padding:8px; }
+    select, button { width:80%; padding:8px; }
     .actions { display:flex; gap:8px; margin-top:12px }
     .actions button { flex:1 }
   </style>
@@ -17,6 +17,11 @@
 <body>
   <div id="header-root"></div>
   <h2>New UniRTOS Project</h2>
+  <div class="row">
+    <label for="projectName">Project name</label>
+    <input id="projectName" type="text" placeholder="Enter project name" style="flex:1; padding:8px" />
+    <button id="open-demo" style="width:120px">Demo projects</button>
+  </div>
   <div class="row">
     <label for="platform">Platform</label>
     <select id="platform"></select>
@@ -27,13 +32,21 @@
   </div>
   <div class="row">
     <label for="targetDir">Save location (where SDK will be cloned)</label>
-    <div style="display:flex; gap:8px;">
+    <div style="width:80%; gap:8px;">
       <input id="targetDir" type="text" readonly style="flex:1; padding:8px" placeholder="Select folder..." />
       <button id="choose-dir" style="width:120px">Choose...</button>
-      <button id="open-demo" style="width:120px">Demo projects</button>
     </div>
   </div>
-  <div class="actions">
+  <div class="row">
+    <label for="sdkVersion">SDK version</label>
+    <select id="sdkVersion" style="width:80%; padding:8px">
+      <option value="v1.0" selected>v1.0</option>
+      <option value="v1.1" hidden>v1.1</option>
+      <option value="v2.0" hidden>v2.0</option>
+    </select>
+  </div>
+
+  <div class="actions" style="width:80%;">
     <button id="cancel">Cancel</button>
     <button id="create">Continue</button>
   </div>
@@ -63,19 +76,21 @@
     document.getElementById('create').addEventListener('click', () => {
       const platform = document.getElementById('platform').value;
       const model = document.getElementById('model').value;
+      const projectName = document.getElementById('projectName').value.trim();
+      const sdkVersion = document.getElementById('sdkVersion').value;
       const targetDir = document.getElementById('targetDir').value;
 
       const missing = [];
       if (!platform) missing.push('platform');
-      if (!model) missing.push('model');
+      if (!projectName) missing.push('project name');
       if (!targetDir) missing.push('save location');
 
       if (missing.length > 0) {
-        vscode.postMessage({ type: 'showMessage', level: 'warning', text: `Please select: ${missing.join(', ')}` });
+        vscode.postMessage({ type: 'showMessage', level: 'warning', text: `Please provide: ${missing.join(', ')}` });
         return;
       }
 
-      vscode.postMessage({ type: 'create', platform: platform, model: model, targetDir: targetDir });
+      vscode.postMessage({ type: 'create', platform: platform, model: model, projectName: projectName, sdkVersion: sdkVersion, targetDir: targetDir });
     });
 
     // accept messages from extension to populate UI

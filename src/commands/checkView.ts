@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export let projectConfigPassed = false;
+export let projectConfigPassed = true;
 
 function checkWorkspaceForSdk(context: vscode.ExtensionContext, post: (id: string, value: string) => void): boolean {
   try {
