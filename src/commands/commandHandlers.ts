@@ -27,8 +27,8 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
       const selection = Array.isArray(item) ? item : (item ? [item] : treeView.selection);
       const labelsArr: string[] = (selection || []).map((s: CommandItem) => s.label);
       // route based on primary selection
-      const primary = labelsArr[0] ?? '';
-      switch (primary) {
+      const cmd = labelsArr[0] ?? '';
+      switch (cmd) {
         case 'Guide - How to':
           showGuide(context);
           return;
@@ -49,14 +49,20 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
             }
             return;
           }
-          case 'Flash UniRTOS Firmware':
+          case 'Flash':
             showFlashFirmware(context);
             return;
-          case 'UniRTOS github':
+          case 'Github':
               await openUrlInIntegratedBrowser('https://github.com/UniRTOS');
               return;
-          case 'UniRTOS Forum':
+          case 'Forum':
               await openUrlInIntegratedBrowser('https://forums.quectel.com/categories');
+              return;
+          case 'Offical Website':
+              await openUrlInIntegratedBrowser('https://www.quectel.com');
+              return;
+          case 'Document Center':
+              await openUrlInIntegratedBrowser('https://developer.quectel.com/en/');
               return;
           default:
           const labels = labelsArr.join(', ');

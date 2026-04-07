@@ -30,32 +30,42 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
     if (!element) {
       // root: return two group nodes
       const groups = [
-        new CommandItem('Commands', vscode.TreeItemCollapsibleState.Expanded, true),
-        new CommandItem('Links', vscode.TreeItemCollapsibleState.Expanded, true)
+        new CommandItem('Development', vscode.TreeItemCollapsibleState.Expanded, true),
+        new CommandItem('Links', vscode.TreeItemCollapsibleState.Expanded, true),
+        new CommandItem('Old', vscode.TreeItemCollapsibleState.Expanded, true),
       ];
       return Promise.resolve(groups);
     }
 
     // children for each group
-    if (element.label === 'Commands') {
-      const cmds = [
-        new CommandItem('Guide - How to'),
-        new CommandItem('Check Requirements'),
+    if (element.label === 'Development') {
+      const dev = [
         new CommandItem('New Project'),
         new CommandItem('New Project From Demo'),
-        new CommandItem('Open UniRTOS Project'),
-        new CommandItem('Flash UniRTOS Firmware'),
-        new CommandItem('Debug UniRTOS Logs')
+        new CommandItem('Open Existing Project'),
+        new CommandItem('Build'),
+        new CommandItem('Flash'),
+        new CommandItem('Debug'),
       ];
-      return Promise.resolve(cmds);
+      return Promise.resolve(dev);
     }
 
     if (element.label === 'Links') {
       const links = [
-        new CommandItem('UniRTOS github'),
-        new CommandItem('UniRTOS Forum')
+        new CommandItem('Document Center'),
+        new CommandItem('Github'),
+        new CommandItem('Forum'),
+        new CommandItem('Offical Website')
       ];
       return Promise.resolve(links);
+    }
+
+    if (element.label === 'Old') {
+      const old = [
+        new CommandItem('Guide - How to'),
+        new CommandItem('Check Requirements')
+      ];
+      return Promise.resolve(old);
     }
 
     return Promise.resolve([]);
