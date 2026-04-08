@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { showNewProjectDemo } from './newProjectDemo';
+import { platformFilePath, sendPlatforms, handlePlatformChanged } from '../utils';
+import * as fs from 'fs';
 
 export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
   // show to user list of platforms and models to choose and download the sdk
@@ -10,14 +11,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   if (!labelsArr.includes('New Project')) return false;
 
   // load platforms JSON from extension
-  const platformFile = path.join(context.extensionPath, 'src', 'data', 'platform.json');
-  let platforms: Record<string, any> = {};
-  try {
-    const raw = fs.readFileSync(platformFile, 'utf8');
-    platforms = JSON.parse(raw);
-  } catch (e) {
-    platforms = {};
-  }
+  const platforms = platformFilePath(context);
 
   const platformKeys = Object.keys(platforms);
   if (platformKeys.length === 0) {
@@ -55,27 +49,15 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
 
   panel.webview.html = html;
 
-  // send platforms when webview is ready or on-demand
-  const sendPlatforms = () => {
-    panel.webview.postMessage({ type: 'setPlatforms', platforms: platformKeys });
-  };
-
   panel.webview.onDidReceiveMessage(async (msg) => {
     if (!msg || !msg.type) return;
     if (msg.type === 'ready') {
-      sendPlatforms();
+      sendPlatforms(panel.webview, platformKeys);
       return;
     }
     
     if (msg.type === 'platformChanged') {
-      const selected = msg.value as string | undefined;
-      let models: string[] = [];
-      if (selected) {
-        const modelsRaw = platforms[selected];
-        if (Array.isArray(modelsRaw)) models = modelsRaw as string[];
-        else if (modelsRaw && typeof modelsRaw === 'object') models = Object.keys(modelsRaw as Record<string, unknown>);
-      }
-      panel.webview.postMessage({ type: 'setModels', models });
+      handlePlatformChanged(msg.value, platforms, panel.webview);
       return;
     }
 
