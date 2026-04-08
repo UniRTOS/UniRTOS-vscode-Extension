@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { projectConfigPassed, showCheckRequirements } from './checkView';
-import { platformFilePath, sendPlatforms, handlePlatformChanged } from '../utils';
+import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
 
 export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   // If global checks have not passed, disable this page and offer to open checks
@@ -349,6 +349,19 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       return;
     }
 
+    // create an app.json manifest inside the demo project folder
+    const appManifest: any = {
+      id: id,
+      name: (entry && entry.name) ? entry.name : id,
+      demo: true,
+      createdBy: 'unirtos-extension'
+    };
+    const createAppFile = writeAppJsonToFolder(workspaceRoot, appManifest);
+    if (!createAppFile) {
+      vscode.window.showWarningMessage('Failed to write app config file.');
+      return;
+    }
+    
     vscode.window.showInformationMessage('Demo project created successfully.');
     return;
 

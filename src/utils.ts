@@ -33,3 +33,18 @@ export function handlePlatformChanged(msgValue: unknown, platforms: Record<strin
 export const sendPlatforms = (webview: vscode.Webview, platformKeys: string[]) => {
 webview.postMessage({ type: 'setPlatforms', platforms: platformKeys });
 };
+
+/**
+ * Write a minimal `app.json` manifest into `folderPath`.
+ * Returns true on success, false on error.
+ */
+export function writeAppJsonToFolder(folderPath: string, appManifest: any): boolean {
+    try {
+        const appJsonPath = path.join(folderPath, 'app.json');
+        fs.writeFileSync(appJsonPath, JSON.stringify(appManifest, null, 2), 'utf8');
+        return true;
+    } catch (e) {
+        console.warn('Failed to write app.json to folder:', folderPath, e);
+        return false;
+    }
+}

@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { showNewProjectDemo } from './newProjectDemo';
-import { platformFilePath, sendPlatforms, handlePlatformChanged } from '../utils';
+import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
 import * as fs from 'fs';
 
 export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
@@ -164,6 +164,18 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string): P
     vscode.window.showErrorMessage(`git clone failed: ${result.stderr || result.stdout}`);
     return false;
   }
+
+  // create an app.json manifest inside the demo project folder
+  const appManifest: any = {
+    demo: false,
+    createdBy: 'unirtos-extension'
+  };
+  const createAppFile = writeAppJsonToFolder(dest, appManifest);
+  if (!createAppFile) {
+    vscode.window.showWarningMessage('Failed to write app config file.');
+    return false;
+  }
+
 
   vscode.window.showInformationMessage(`Cloned ${sdkUrl} -> ${dest}`);
   return true;
