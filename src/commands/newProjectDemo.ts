@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { projectConfigPassed, showCheckRequirements } from './checkView';
+import { platformFilePath, sendPlatforms, handlePlatformChanged } from '../utils';
 
 export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   // If global checks have not passed, disable this page and offer to open checks
@@ -57,7 +58,25 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   }
 
   panel.webview.html = html;
-  panel.webview.onDidReceiveMessage((message) => handleCreateDemoMessage(message, context));
+
+  // read platforms config and expose platforms list
+  const platforms = platformFilePath(context) || {};
+  const platformKeys = Object.keys(platforms);
+
+  panel.webview.onDidReceiveMessage((message) => {
+    if (!message || !message.type) return;
+    if (message.type === 'ready') {
+      sendPlatforms(panel.webview, platformKeys);
+      return;
+    }
+    if (message.type === 'platformChanged') {
+      handlePlatformChanged(message.value, platforms, panel.webview);
+      return;
+    }
+
+    // fallback to demo message handler
+    handleCreateDemoMessage(message, context);
+  });
 }
 
 function removeUnirtosPrefix(dest: string, workspaceRoot: string, id: string): string {
@@ -215,7 +234,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
 
   const payload = message.payload || {};
   const id = payload.name;
-  const addToSdk = !!payload.addToSdk;
 
   const folders = vscode.workspace.workspaceFolders;
   if (!folders || folders.length === 0) {
@@ -341,11 +359,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       vscode.window.showWarningMessage('SDK build failed.');
       console.error('SDK build failed', e);
       return;
-    }
-
-    if (addToSdk) {
-      // Placeholder: user requested add to SDK — extension can react here.
-      vscode.window.showInformationMessage('Requested to add demo project to current SDK (no-op).');
     }
   } catch (e: any) {
     vscode.window.showErrorMessage('Failed to clone demo project: ' + (e && e.message ? e.message : e));

@@ -33,8 +33,3 @@ export function handlePlatformChanged(msgValue: unknown, platforms: Record<strin
 export const sendPlatforms = (webview: vscode.Webview, platformKeys: string[]) => {
 webview.postMessage({ type: 'setPlatforms', platforms: platformKeys });
 };
-
-export default {
-  platformFilePath,
-  sendPlatforms
-};
