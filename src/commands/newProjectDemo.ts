@@ -69,6 +69,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
       sendPlatforms(panel.webview, platformKeys);
       return;
     }
+
     if (message.type === 'platformChanged') {
       handlePlatformChanged(message.value, platforms, panel.webview);
       return;
@@ -255,7 +256,7 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
     }
 
     // check workspace + sdk folder
-   let workspaceRoot = folders[0].uri.fsPath;
+    let workspaceRoot = folders[0].uri.fsPath;
     // Look for qos_applications/apps at workspace root first, then one level deeper.
     let sdkRoot = workspaceRoot;
     let sdkApps = path.join(sdkRoot, 'qos_applications', 'apps');
@@ -347,6 +348,9 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       console.warn('Failed to update SDK files:', e);
       return;
     }
+
+    vscode.window.showInformationMessage('Demo project created successfully.');
+    return;
 
     // Build SDK by running top-level script
     try {

@@ -65,15 +65,14 @@
       // notify extension this demo webview is ready to receive platforms/models
       vscode.postMessage({ type: 'ready' });
 
-    document.getElementById('platform').addEventListener('change', (e) => {
-      vscode.postMessage({ type: 'platformChanged', value: e.target.value });
-    });
+      document.getElementById('platform').addEventListener('change', (e) => {
+        vscode.postMessage({ type: 'platformChanged', value: e.target.value });
+      });
 
       document.getElementById('create').addEventListener('click', () => {
         const selected = select ? select.value : null;
         if (window && window.acquireVsCodeApi) {
-          const api = acquireVsCodeApi();
-          api.postMessage({ type: 'createDemo', payload: { name: selected || 'demo-project' } });
+          vscode.postMessage({ type: 'createDemo', payload: { name: selected || 'demo-project' } });
         }
       });
 
@@ -114,7 +113,6 @@
       } catch (e) {
         // ignore
       }
-
     })();
   </script>
 </body>

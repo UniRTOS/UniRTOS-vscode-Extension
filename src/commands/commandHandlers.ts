@@ -41,7 +41,7 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
         case 'New Project From Demo':
           showNewProjectDemo(context);
           return;
-        case 'Open UniRTOS Project':
+        case 'Open Existing Project':
           {
             const uris = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false });
             if (uris && uris.length > 0) {
