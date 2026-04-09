@@ -5,6 +5,7 @@ import { showCheckRequirements } from './checkView';
 import { handleNewProject } from './newProject';
 import { showNewProjectDemo } from './newProjectDemo';
 import { showFlashFirmware } from './flashFirmware';
+import { runBuildScript } from './build';
 
 export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
 
@@ -34,6 +35,9 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
           return;
         case 'Check Requirements':
           showCheckRequirements(context);
+          return;
+        case 'Build':
+          await runBuildScript(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '');
           return;
         case 'New Project':
           await handleNewProject(labelsArr, context);

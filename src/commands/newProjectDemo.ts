@@ -206,41 +206,6 @@ function updateSdkFiles(workspaceRoot: string, demoEntry?: any): boolean {
  * Run the top-level build script `buildlib_unirtos.bat` and stream output to an OutputChannel.
  * Returns true on success, false on failure.
  */
-async function runBuildScript(workspaceRoot: string): Promise<boolean> {
-  const output = vscode.window.createOutputChannel('UniRTOS Build');
-
-  const script = 'buildlib_unirtos.bat';
-  const isWin = process.platform === 'win32';
-  const cmd = isWin ? `cmd.exe /c ${script}` : `./${script}`;
-
-  return await vscode.window.withProgress({
-    location: vscode.ProgressLocation.Notification,
-    title: 'Building SDK',
-    cancellable: false
-  }, async () => {
-    return new Promise<boolean>((resolve) => {
-      const child = exec(cmd, { cwd: workspaceRoot });
-
-      if (child.stdout) child.stdout.on('data', (d) => output.append(d.toString()));
-      if (child.stderr) child.stderr.on('data', (d) => output.append(d.toString()));
-
-      child.on('error', (err) => {
-        output.appendLine('Build process error: ' + err.message);
-        resolve(false);
-      });
-
-      child.on('close', (code) => {
-        if (code === 0) {
-          output.appendLine('Build finished successfully.');
-          resolve(true);
-        } else {
-          output.appendLine(`Build exited with code ${code}.`);
-          resolve(false);
-        }
-      });
-    });
-  });
-}
 
 async function handleCreateDemoMessage(message: any, context: vscode.ExtensionContext) {
   if (!message || message.type !== 'createDemo') {
@@ -377,20 +342,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
     }
     
     vscode.window.showInformationMessage('Demo project created successfully.');
-    return;
-
-    // Build SDK by running top-level script
-    try {
-      const built = await runBuildScript(workspaceRoot);
-      if (!built) {
-        vscode.window.showWarningMessage('SDK build failed. See "UniRTOS Build" output for details.');
-        return;
-      }
-    } catch (e) {
-      vscode.window.showWarningMessage('SDK build failed.');
-      console.error('SDK build failed', e);
-      return;
-    }
   } catch (e: any) {
     vscode.window.showErrorMessage('Failed to clone demo project: ' + (e && e.message ? e.message : e));
     console.error('Failed to clone demo project', e);
