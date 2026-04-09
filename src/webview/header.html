@@ -1,9 +1,33 @@
 <header class="top-header">
-  <h1>UniRTOS</h1>
-  <a class="home-button" href="https://developer.quectel.com/en/" target="_blank" rel="noopener">Home</a>
+  <div class="left"><h1>UniRTOS</h1></div>
+  <div class="center"><div id="unirtos-project-status">UniRTOS project: <strong id="unirtos-project-value" class="status-no">No</strong></div></div>
+  <div class="right"><a class="home-button" href="https://developer.quectel.com/en/" target="_blank" rel="noopener">Home</a></div>
 </header>
 <style>
 .top-header { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:#f5f7fa; border-radius:6px; margin-bottom:18px }
 .top-header h1 { margin:0; font-size:18px; color:#0066cc }
 .top-header a.home-button { text-decoration:none; background:#0066cc; color:#fff; padding:6px 10px; border-radius:4px }
+.left { flex: 0 0 auto }
+.center { flex: 1 1 auto; display:flex; justify-content:center }
+.right { flex: 0 0 auto }
+#unirtos-project-status { font-size:13px; color:#333 }
+.status-yes { color: #0b7a2f }
+.status-no { color: #c0392b }
 </style>
+
+<script>
+  // Update the UniRTOS project status. Expect messages of form { type: 'setUniRTOSProject', value: true|false }
+  window.addEventListener('message', event => {
+    try {
+      const msg = event.data;
+      if (!msg || msg.type !== 'setUniRTOSProject') return;
+      const val = !!msg.value;
+      const el = document.getElementById('unirtos-project-value');
+      if (!el) return;
+      el.textContent = val ? 'Yes' : 'No';
+      el.className = val ? 'status-yes' : 'status-no';
+    } catch (e) {
+      console.warn('header: failed to handle setUniRTOSProject message', e);
+    }
+  });
+</script>

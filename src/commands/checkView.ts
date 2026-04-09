@@ -79,7 +79,7 @@ function checkPython3(post: (id: string, value: string) => void): boolean {
     return false;
   }
 }
-
+ 
 export function showCheckRequirements(context: vscode.ExtensionContext) {
   const panel = vscode.window.createWebviewPanel(
     'unirtosCheckRequirements',
@@ -147,5 +147,3 @@ export function showCheckRequirements(context: vscode.ExtensionContext) {
 
   projectConfigPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
 }
-
-export default showCheckRequirements;

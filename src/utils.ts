@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import { exec } from 'child_process';
 
 export function platformFilePath(context: vscode.ExtensionContext): Record<string, any> {
     const platformFile = path.join(context.extensionPath, 'src', 'data', 'platform.json');
@@ -42,9 +43,10 @@ export function writeAppJsonToFolder(folderPath: string, appManifest: any): bool
     try {
         const appJsonPath = path.join(folderPath, 'app.json');
         fs.writeFileSync(appJsonPath, JSON.stringify(appManifest, null, 2), 'utf8');
+        exec(`attrib +h "${appJsonPath}"`); // hide the file on Windows
         return true;
     } catch (e) {
-        console.warn('Failed to write app.json to folder:', folderPath, e);
+        console.warn('Failed to write app.json correctly to folder:', folderPath, e);
         return false;
     }
 }
