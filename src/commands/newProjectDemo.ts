@@ -2,22 +2,23 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { projectConfigPassed, showCheckRequirements } from './checkView';
+// import { projectConfigPassed, showCheckRequirements } from './checkView';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
+import { runBasicEnvChecks } from './checkView';
 
 export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   // If global checks have not passed, disable this page and offer to open checks
-  if (!projectConfigPassed) {
-    const choice = await vscode.window.showWarningMessage(
-      'Environment checks have not passed — New Project (Demo) is disabled.',
-      { modal: true },
-      'Open Checks'
-    );
-    if (choice === 'Open Checks') {
-      showCheckRequirements(context);
-    }
-    return;
-  }
+  // if (!projectConfigPassed) {
+  //   const choice = await vscode.window.showWarningMessage(
+  //     'Environment checks have not passed — New Project (Demo) is disabled.',
+  //     { modal: true },
+  //     'Open Checks'
+  //   );
+  //   if (choice === 'Open Checks') {
+  //     showCheckRequirements(context);
+  //   }
+  //   return;
+  // }
   const panel = vscode.window.createWebviewPanel(
     'unirtosNewProjectDemo',
     'UniRTOS — New Project (Demo)',
@@ -58,6 +59,19 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   }
 
   panel.webview.html = html;
+
+  // check if project is unirtos
+  const basic = runBasicEnvChecks(context);
+  const gitFound = basic.gitFound;
+  const unirtosFound = basic.unirtosFound;
+
+  const pythonOk = basic.pythonOk; // 3. python check
+  const workspaceOk = basic.workspaceOk; // 4. check if current workspace is UniRTOS SDK
+
+  let projectConfigPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
+  if (projectConfigPassed) {
+    panel.webview.postMessage({ type: 'setUniRTOSProject', value: true });
+  }
 
   // read platforms config and expose platforms list
   const platforms = platformFilePath(context) || {};

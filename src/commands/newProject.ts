@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import { showNewProjectDemo } from './newProjectDemo';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
 import * as fs from 'fs';
+import { runBasicEnvChecks } from './checkView';
 
 export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
   // show to user list of platforms and models to choose and download the sdk
@@ -48,6 +49,19 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   }
 
   panel.webview.html = html;
+  
+  // check if project is unirtos
+  const basic = runBasicEnvChecks(context);
+  const gitFound = basic.gitFound;
+  const unirtosFound = basic.unirtosFound;
+
+  const pythonOk = basic.pythonOk; // 3. python check
+  const workspaceOk = basic.workspaceOk; // 4. check if current workspace is UniRTOS SDK
+
+  let projectConfigPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
+  if (projectConfigPassed) {
+    panel.webview.postMessage({ type: 'setUniRTOSProject', value: true });
+  }
 
   panel.webview.onDidReceiveMessage(async (msg) => {
     if (!msg || !msg.type) return;

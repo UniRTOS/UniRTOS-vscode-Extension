@@ -1,14 +1,15 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 
 export let projectConfigPassed = true;
 
-function checkWorkspaceForSdk(context: vscode.ExtensionContext, post: (id: string, value: string) => void): boolean {
+function checkWorkspaceForSdk(context: vscode.ExtensionContext): boolean {
   try {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders || folders.length === 0) {
-      post('unirtos_sdk', `Current folder: <span class="bad">No workspace open</span>`);
+      // post('unirtos_sdk', `Current folder: <span class="bad">No workspace open</span>`);
       return false;
     }
 
@@ -40,19 +41,19 @@ function checkWorkspaceForSdk(context: vscode.ExtensionContext, post: (id: strin
     }
 
     if (hasBatch) {
-      post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="ok">Yes</span>`);
+      // post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="ok">Yes</span>`);
       return true;
     } else {
-      post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="bad">No</span> — Not detected as UniRTOS project`);
+      // post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="bad">No</span> — Not detected as UniRTOS project`);
       return false;
     }
   } catch (e) {
-    post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="bad">Check failed</span>`);
+    // post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="bad">Check failed</span>`);
     return false;
   }
 }
 
-function checkPython3(post: (id: string, value: string) => void): boolean {
+function checkPython3(): boolean {
   try {
     let pyOut = '';
     try {
@@ -64,22 +65,59 @@ function checkPython3(post: (id: string, value: string) => void): boolean {
     if (found) {
       const major = parseInt(found[1], 10);
       if (major >= 3) {
-        post('python', `Python3 or higher: <span class="ok">Yes</span> — ${pyOut}`);
+        // post('python', `Python3 or higher: <span class="ok">Yes</span> — ${pyOut}`);
         return true;
       } else {
-        post('python', `Python3 or higher: <span class="bad">No</span> — ${pyOut} (requires Python 3+)`);
+        // post('python', `Python3 or higher: <span class="bad">No</span> — ${pyOut} (requires Python 3+)`);
         return false;
       }
     } else {
-      post('python', `Python3 or higher: <span class="bad">No</span> — unexpected version output: ${pyOut}`);
+      // post('python', `Python3 or higher: <span class="bad">No</span> — unexpected version output: ${pyOut}`);
       return false;
     }
   } catch (e) {
-    post('python', `Python3 or higher: <span class="bad">Not found</span> — install from <a href="https://www.python.org/downloads/">python.org</a>`);
+    // post('python', `Python3 or higher: <span class="bad">Not found</span> — install from <a href="https://www.python.org/downloads/">python.org</a>`);
     return false;
   }
 }
- 
+
+/**
+ * Run basic environment checks (best-effort): git and unirtos tool.
+ * Posts status messages via `post` and returns the results.
+ */
+export function runBasicEnvChecks(context: vscode.ExtensionContext): { gitFound: boolean; unirtosFound: boolean; pythonOk: boolean; workspaceOk: boolean } {
+    let gitFound = false;
+    let unirtosFound = false;
+
+    try {
+        const git = execSync('git --version').toString().trim();
+        // post('git', `Git: <span class="ok">${git}</span>`);
+        gitFound = true;
+    } catch (e) {
+        // post('git', `Git: <span class="bad">Not found</span> — install from <a href="https://git-scm.com/downloads">git-scm.com</a>`);
+        gitFound = false;
+    }
+
+    try {
+        let out: string;
+        try {
+            out = execSync('unirtos.exe --version', { stdio: 'pipe' }).toString().trim();
+        } catch (e) {
+            out = execSync('unirtos --version', { stdio: 'pipe' }).toString().trim();
+        }
+        // post('unirtos', `UniRTOS compiler tool: <span class="ok">${out}</span>`);
+        unirtosFound = true;
+    } catch (e) {
+        // post('unirtos', `UniRTOS compiler tool: <span class="bad">Not found</span>  — insure you installed all requirments here <a href="https://github.com/UniRTOS/unirtos">requirments</a>`);
+        unirtosFound = false;
+    }
+
+    const pythonOk = checkPython3(); // 3. python check
+    const workspaceOk = checkWorkspaceForSdk(context); // 4. check if current workspace is UniRTOS SDK
+
+    return { gitFound, unirtosFound, pythonOk, workspaceOk };
+}
+
 export function showCheckRequirements(context: vscode.ExtensionContext) {
   const panel = vscode.window.createWebviewPanel(
     'unirtosCheckRequirements',
@@ -112,38 +150,15 @@ export function showCheckRequirements(context: vscode.ExtensionContext) {
 
   // Optionally attempt basic checks and post messages to the webview
   const webview = panel.webview;
-  const post = (id: string, value: string) => webview.postMessage({ type: 'status', id, value });
+  // const post = (id: string, value: string) => webview.postMessage({ type: 'status', id, value });
+  
   // 1. Basic checks using environment - best effort
-  let gitFound = false;
-  let unirtosFound = false;
+  const basic = runBasicEnvChecks(context);
+  const gitFound = basic.gitFound;
+  const unirtosFound = basic.unirtosFound;
 
-  try {
-    const git = require('child_process').execSync('git --version').toString().trim();
-    post('git', `Git: <span class="ok">${git}</span>`);
-    gitFound = true;
-  } catch (e) {
-    post('git', `Git: <span class="bad">Not found</span> — install from <a href="https://git-scm.com/downloads">git-scm.com</a>`);
-    gitFound = false;
-  }
-
-  // 2. check for unirtos.exe (Windows) or unirtos (unix)
-  try {
-    let out: string;
-    try {
-      out = require('child_process').execSync('unirtos.exe --version', { stdio: 'pipe' }).toString().trim();
-    } catch (e) {
-      // fallback to `unirtos` without .exe
-      out = require('child_process').execSync('unirtos --version', { stdio: 'pipe' }).toString().trim();
-    }
-    post('unirtos', `UniRTOS compiler tool: <span class="ok">${out}</span>`);
-    unirtosFound = true;
-  } catch (e) {
-    post('unirtos', `UniRTOS compiler tool: <span class="bad">Not found</span>  — insure you installed all requirments here <a href="https://github.com/UniRTOS/unirtos">requirments</a>`);
-    unirtosFound = false;
-  }
-
-  const pythonOk = checkPython3(post); // 3. python check
-  const workspaceOk = checkWorkspaceForSdk(context, post); // 4. check if current workspace is UniRTOS SDK
+  const pythonOk = basic.pythonOk; // 3. python check
+  const workspaceOk = basic.workspaceOk; // 4. check if current workspace is UniRTOS SDK
 
   projectConfigPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
 }
