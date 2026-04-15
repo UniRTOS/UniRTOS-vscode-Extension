@@ -1,5 +1,8 @@
 <header class="top-header">
-  <div class="left"><h1>UniRTOS</h1></div>
+  <div class="left">
+    <img class="logo" src="%%UNIRTOS_ICON%%" alt="UniRTOS logo">
+    <h1>UniRTOS</h1>
+  </div>
   <div class="center"><div id="unirtos-project-status">UniRTOS project: <strong id="unirtos-project-value" class="status-no">No</strong></div></div>
   <div class="right"><a class="home-button" href="https://developer.quectel.com/en/" target="_blank" rel="noopener">Home</a></div>
 </header>
@@ -7,12 +10,14 @@
 .top-header { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:#f5f7fa; border-radius:6px; margin-bottom:18px }
 .top-header h1 { margin:0; font-size:18px; color:#0066cc }
 .top-header a.home-button { text-decoration:none; background:#0066cc; color:#fff; padding:6px 10px; border-radius:4px }
-.left { flex: 0 0 auto }
+.left { flex: 0 0 auto; display:flex; align-items:center }
 .center { flex: 1 1 auto; display:flex; justify-content:center }
 .right { flex: 0 0 auto }
 #unirtos-project-status { font-size:13px; color:#333 }
 .status-yes { color: #0b7a2f }
 .status-no { color: #c0392b }
+
+.top-header .logo { height:24px; width:auto; margin-right:8px }
 </style>
 
 <script>

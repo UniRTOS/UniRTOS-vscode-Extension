@@ -5,6 +5,7 @@ import { exec } from 'child_process';
 // import { projectConfigPassed, showCheckRequirements } from './checkView';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
 import { runBasicEnvChecks } from './checkView';
+import { injectHeaderIntoHtml } from './header';
 
 export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   // If global checks have not passed, disable this page and offer to open checks
@@ -29,7 +30,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
     }
   );
 
-  // Inject html + header files
+  // Inject html
   const file = path.join(context.extensionPath, 'src', 'webview', 'new-project-demo.html');
   let html = '<p>Demo page not found</p>';
   try {
@@ -37,13 +38,9 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   } catch (e) {
     console.error('Failed to read new-project-demo.html', e);
   }
-  try {
-    const headerFile = path.join(context.extensionPath, 'src', 'webview', 'header.html');
-    const headerHtml = fs.readFileSync(headerFile, 'utf8');
-    html = html.replace('<div id="header-root"></div>', headerHtml);
-  } catch (e) {
-    console.warn('Header fragment not injected:', e);
-  }
+
+  // inject header
+  html = injectHeaderIntoHtml(html, panel, context);
 
   // Inject demo projects from JSON so the webview can populate the dropdown
   try {

@@ -3,6 +3,7 @@ import * as path from 'path';
 import { exec } from 'child_process';
 import { showNewProjectDemo } from './newProjectDemo';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
+import { injectHeaderIntoHtml } from './header';
 import * as fs from 'fs';
 import { runBasicEnvChecks } from './checkView';
 
@@ -27,7 +28,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     vscode.ViewColumn.One,
     {
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.file(path.join(context.extensionPath, 'src', 'webview'))]
+      localResourceRoots: [vscode.Uri.file(context.extensionPath)]
     }
   );
 
@@ -39,14 +40,8 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     console.error('Failed to read new-project.html', e);
   }
 
-  // inject header fragment if available (uses <div id="header-root"></div> in HTML)
-  try {
-    const headerFile = path.join(context.extensionPath, 'src', 'webview', 'header.html');
-    const headerHtml = fs.readFileSync(headerFile, 'utf8');
-    html = html.replace('<div id="header-root"></div>', headerHtml);
-  } catch (e) {
-    console.warn('Header fragment not injected into new-project.html:', e);
-  }
+  // inject header
+  html = injectHeaderIntoHtml(html, panel, context);
 
   panel.webview.html = html;
   

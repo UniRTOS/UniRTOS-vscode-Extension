@@ -30,6 +30,21 @@ export function showGuide(context: vscode.ExtensionContext) {
     console.warn('Header fragment not injected into guide.html:', e);
   }
 
+  // Inject icon path into header placeholder using webview URI
+  try {
+    const iconFile = path.join(context.extensionPath, 'images', 'icon.png');
+    if (fs.existsSync(iconFile)) {
+      const uri = vscode.Uri.file(iconFile);
+      const asWebview = (panel.webview as any).asWebviewUri;
+      const iconUriObj = typeof asWebview === 'function' ? asWebview.call(panel.webview, uri) : uri;
+      html = html.replace('%%UNIRTOS_ICON%%', iconUriObj ? iconUriObj.toString() : '');
+    } else {
+      html = html.replace('%%UNIRTOS_ICON%%', '');
+    }
+  } catch (e) {
+    html = html.replace('%%UNIRTOS_ICON%%', '');
+  }
+
   panel.webview.html = html;
 }
 

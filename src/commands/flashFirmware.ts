@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { projectConfigPassed, showCheckRequirements } from './checkView';
+import { injectHeaderIntoHtml } from './header';
 
 async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: vscode.ExtensionContext, output: vscode.OutputChannel) {
   // run FlashToolCLI with the selected cfg file and stream output to the channel
@@ -197,14 +198,8 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
     html = fs.readFileSync(file, 'utf8');
   }
 
-  // add header file
-  try {
-    const headerFile = path.join(context.extensionPath, 'src', 'webview', 'header.html');
-    const headerHtml = fs.readFileSync(headerFile, 'utf8');
-    html = html.replace('<div id="header-root"></div>', headerHtml);
-  } catch (e) {
-    console.warn('Header fragment not injected:', e);
-  }
+  // inject header
+  html = injectHeaderIntoHtml(html, panel, context);
 
   // replace image placeholders with proper webview URIs for images if they exist
   try {
