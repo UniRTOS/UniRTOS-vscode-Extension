@@ -9,8 +9,8 @@ import { runBasicEnvChecks } from './checkView';
 
 export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
   // show to user list of platforms and models to choose and download the sdk
-
-  if (!labelsArr.includes('New Project')) return false;
+  let title = 'New Project';
+  if (!labelsArr.includes(title)) return false;
 
   // load platforms JSON from extension
   const platforms = platformFilePath(context);
@@ -24,7 +24,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   // Instead of quick pick, open a webview to present platforms/models
   const panel = vscode.window.createWebviewPanel(
     'unirtosNewProject',
-    'UniRTOS — New Project',
+    `UniRTOS — ${title}`,
     vscode.ViewColumn.One,
     {
       enableScripts: true,
@@ -41,7 +41,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   }
 
   // inject header
-  html = injectHeaderIntoHtml(html, panel, context);
+  html = injectHeaderIntoHtml(html, panel, context, title);
 
   panel.webview.html = html;
   

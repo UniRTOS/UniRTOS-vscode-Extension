@@ -40,7 +40,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   }
 
   // inject header
-  html = injectHeaderIntoHtml(html, panel, context);
+  html = injectHeaderIntoHtml(html, panel, context, 'New Project From Demo');
 
   // Inject demo projects from JSON so the webview can populate the dropdown
   try {

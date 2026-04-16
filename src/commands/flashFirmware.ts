@@ -199,7 +199,7 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
   }
 
   // inject header
-  html = injectHeaderIntoHtml(html, panel, context);
+  html = injectHeaderIntoHtml(html, panel, context, 'Flash Firmware');
 
   // replace image placeholders with proper webview URIs for images if they exist
   try {

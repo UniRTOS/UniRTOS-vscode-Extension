@@ -3,7 +3,11 @@
     <img class="logo" src="%%UNIRTOS_ICON%%" alt="UniRTOS logo">
     <h1>UniRTOS</h1>
   </div>
-  <div class="center"><div id="unirtos-project-status">UniRTOS project: <strong id="unirtos-project-value" class="status-no">No</strong></div></div>
+  <div class="center">
+    
+    <div id="page-title">Page: <strong id="page-title-value">—</strong></div>
+    <div id="unirtos-project-status">UniRTOS project: <strong id="unirtos-project-value" class="status-no">No</strong></div>
+  </div>
   <div class="right"><a class="home-button" href="https://developer.quectel.com/en/" target="_blank" rel="noopener">Home</a></div>
 </header>
 <style>
@@ -17,22 +21,32 @@
 .status-yes { color: #0b7a2f }
 .status-no { color: #c0392b }
 
+#page-title { font-size:13px; color:#333; margin-right:12px }
+
 .top-header .logo { height:24px; width:auto; margin-right:8px }
 </style>
 
 <script>
-  // Update the UniRTOS project status. Expect messages of form { type: 'setUniRTOSProject', value: true|false }
+  // Update header fields. Handle messages like
+  // { type: 'setUniRTOSProject', value: true|false } and { type: 'setPageTitle', value: 'My Page' }
   window.addEventListener('message', event => {
     try {
       const msg = event.data;
-      if (!msg || msg.type !== 'setUniRTOSProject') return;
-      const val = !!msg.value;
-      const el = document.getElementById('unirtos-project-value');
-      if (!el) return;
-      el.textContent = val ? 'Yes' : 'No';
-      el.className = val ? 'status-yes' : 'status-no';
+      if (!msg || !msg.type) return;
+      if (msg.type === 'setUniRTOSProject') {
+        const val = !!msg.value;
+        const el = document.getElementById('unirtos-project-value');
+        if (el) {
+          el.textContent = val ? 'Yes' : 'No';
+          el.className = val ? 'status-yes' : 'status-no';
+        }
+      } else if (msg.type === 'setPageTitle') {
+        const title = msg.value == null ? '' : String(msg.value);
+        const el = document.getElementById('page-title-value');
+        if (el) el.textContent = title || '—';
+      }
     } catch (e) {
-      console.warn('header: failed to handle setUniRTOSProject message', e);
+      console.warn('header: failed to handle message', e);
     }
   });
 </script>
