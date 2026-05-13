@@ -14,18 +14,18 @@ function checkWorkspaceForSdk(context: vscode.ExtensionContext): boolean {
     }
 
     const wf = folders[0].uri.fsPath;
-    // check for buildlib_unirtos.bat
+    // check for build.sh
     let hasBatch = false;
     try {
       // Check top-level first
-      hasBatch = fs.existsSync(path.join(wf, 'buildlib_unirtos.bat'));
+      hasBatch = fs.existsSync(path.join(wf, 'build.sh'));
       // If not found at top-level, check one-level deep subfolders
       if (!hasBatch) {
         try {
           const entries = fs.readdirSync(wf, { withFileTypes: true });
           for (const e of entries) {
             if (e.isDirectory()) {
-              const candidate = path.join(wf, e.name, 'buildlib_unirtos.bat');
+              const candidate = path.join(wf, e.name, 'build.sh');
               if (fs.existsSync(candidate)) {
                 hasBatch = true;
                 break;

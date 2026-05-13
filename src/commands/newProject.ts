@@ -10,168 +10,13 @@ import { UNIRTOS_REPO } from '../constants';
 
 let newProjectPanel: vscode.WebviewPanel | undefined;
 
-export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
-  // show to user list of platforms and models to choose and download the sdk
-  let title = 'New Project';
-  if (!labelsArr.includes(title)) return false;
-
-  // load platforms JSON from extension
-  const platforms = platformFilePath(context);
-
-  const platformKeys = Object.keys(platforms);
-  if (platformKeys.length === 0) {
-    vscode.window.showInformationMessage('No platforms available');
-    return true;
-  }
-
-  // Use 1 tab only, not multiple ones
-  if (newProjectPanel) {
-    newProjectPanel.reveal(vscode.ViewColumn.One);
-    const basicExisting = runBasicEnvChecks(context);
-    const passedExisting = basicExisting.gitFound && basicExisting.unirtosFound && basicExisting.pythonOk && basicExisting.workspaceOk;
-    try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: passedExisting }); } catch (e) {}
-    return true;
-  }
-
-  const panel = vscode.window.createWebviewPanel(
-    'unirtosNewProject',
-    `UniRTOS — ${title}`,
-    vscode.ViewColumn.One,
-    {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.file(context.extensionPath)]
-    }
-  );
-  newProjectPanel = panel;
-  panel.onDidDispose(() => { newProjectPanel = undefined; });
-
-  const file = path.join(context.extensionPath, 'src', 'webview', 'new-project.html');
-  let html = '<p>New project UI not found</p>';
-  try {
-    html = fs.readFileSync(file, 'utf8');
-  } catch (e) {
-    console.error('Failed to read new-project.html', e);
-  }
-
-  // inject header
-  html = injectHeaderIntoHtml(html, panel, context, title);
-
-  panel.webview.html = html;
-  
-  // check if project is unirtos
-  const basic = runBasicEnvChecks(context);
-  const gitFound = basic.gitFound;
-  const unirtosFound = basic.unirtosFound;
-
-  const pythonOk = basic.pythonOk; // 3. python check
-  const workspaceOk = basic.workspaceOk; // 4. check if current workspace is UniRTOS SDK
-
-  let projectConfigPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
-  if (projectConfigPassed) {
-    panel.webview.postMessage({ type: 'setUniRTOSProject', value: true });
-  }
-
-  panel.webview.onDidReceiveMessage(async (msg) => {
-    if (!msg || !msg.type) return;
-    if (msg.type === 'ready') {
-      sendPlatforms(panel.webview, platformKeys);
-      return;
-    }
-    
-    if (msg.type === 'platformChanged') {
-      handlePlatformChanged(msg.value, platforms, panel.webview);
-      return;
-    }
-
-    if (msg.type === 'chooseDir') {
-      const uris = await vscode.window.showOpenDialog({
-        canSelectFiles: false,
-        canSelectFolders: true,
-        canSelectMany: false,
-        openLabel: 'Select folder to save SDK'
-      });
-      if (uris && uris.length > 0) {
-        panel.webview.postMessage({ type: 'setTargetDir', path: uris[0].fsPath });
-      }
-      return;
-    }
-
-    // show message from webview (info/warning/error)
-    if (msg.type === 'showMessage') {
-      try {
-        const level = (msg.level || 'info') as string;
-        const text = msg.text || '';
-        if (level === 'warning') vscode.window.showWarningMessage(text);
-        else if (level === 'error') vscode.window.showErrorMessage(text);
-        else vscode.window.showInformationMessage(text);
-      } catch (e) {
-        console.warn('Failed to show message from webview:', e);
-      }
-      return;
-    }
-
-    if (msg.type === 'create') {
-      const pickedPlatformKey = msg.platform as string | undefined;
-      const pickedModel = msg.model as string | undefined;
-      const pickedTargetDir = msg.targetDir as string | undefined;
-      const pickedProjectName = msg.projectName as string | undefined;
-      
-      const infoMsg = pickedModel
-        ? UNIRTOS_REPO
-          ? `Selected: ${pickedPlatformKey} / ${pickedModel} — ${UNIRTOS_REPO}`
-          : `Selected: ${pickedPlatformKey} / ${pickedModel}`
-        : `Selected: ${pickedPlatformKey}`;
-      console.log(infoMsg);
-
-      await downloadAndCloneSdk(UNIRTOS_REPO, pickedTargetDir, pickedProjectName);
-      panel.dispose();
-      return;
-    }
-
-    if (msg.type === 'cancel') {
-      panel.dispose();
-      return;
-    }
-    
-    if (msg.type === 'openDemo') {
-      // open the demo page (reuses existing demo handler)
-      try {
-        showNewProjectDemo(context);
-      } catch (e) {
-        console.warn('Failed to open demo page:', e);
-      }
-      return;
-    }
-  });
-
-  return true;
-}
-
-export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, projectName?: string): Promise<boolean> {
-  if (!sdkUrl) return false;
-
-  
-  if (!targetDir) {
-    vscode.window.showWarningMessage('Please select a target directory to clone the SDK repository.');
-    return false;
-  }
-  const repoNameMatch = sdkUrl.match(/\/([^\/]+?)(?:\.git)?$/);
-  const repoName = repoNameMatch ? repoNameMatch[1].replace(/\.git$/, '') : 'repo';
-  const folderName = projectName && projectName.trim().length > 0 ? projectName.trim() : repoName;
-  const dest = path.join(targetDir as string, folderName);
-
-  if (fs.existsSync(dest)) {
-    const overwrite = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: `Folder ${dest} exists. Remove and re-clone?`, canPickMany: false });
-    if (overwrite !== 'Yes') return false;
-    try { fs.rmSync(dest, { recursive: true, force: true }); } catch (e) {}
-  }
-
-  const result = await vscode.window.withProgress(
+async function runGitCloneWithProgress(sdkUrl: string, dest: string, repoName: string, cwd: string): Promise<{ code: number; stdout: string; stderr: string }> {
+  return vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: `Cloning ${repoName}`, cancellable: true },
     (progress, token) => {
       return new Promise<{ code: number; stdout: string; stderr: string }>((resolve) => {
         const gitArgs = ['clone', '--progress', sdkUrl, dest];
-        const child = spawn('git', gitArgs, { cwd: targetDir as string });
+        const child = spawn('git', gitArgs, { cwd });
         let stdout = '';
         let stderr = '';
         let lastPct = 0;
@@ -236,7 +81,7 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, pr
             const msg = text.split('\n')[0].trim();
             if (msg) {
               const lower = msg.toLowerCase();
-              // only update progress 
+              // Ignore noisy remote lines and package metadata lines that provide little value
               if (lower.startsWith('remote:') || /pack-reused/i.test(msg) || /reused \d+/i.test(msg) || /total \d+/i.test(msg) || /^cloning\b/i.test(msg)) {
                 // skip reporting this noisy line
               } else {
@@ -257,9 +102,169 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, pr
       });
     }
   );
+}
+
+export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
+  // show to user list of platforms and models to choose and download the sdk
+  let title = 'New Project';
+  if (!labelsArr.includes(title)) return false;
+
+  // load platforms JSON from extension
+  const platforms = platformFilePath(context);
+
+  const platformKeys = Object.keys(platforms);
+  if (platformKeys.length === 0) {
+    vscode.window.showInformationMessage('No platforms available');
+    return true;
+  }
+
+  const basicExisting = runBasicEnvChecks(context);
+  const passedExisting = basicExisting.gitFound && basicExisting.unirtosFound && basicExisting.pythonOk && basicExisting.workspaceOk;
+
+  // Use 1 tab only, not multiple ones
+  if (newProjectPanel) {
+    newProjectPanel.reveal(vscode.ViewColumn.One);
+    try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: passedExisting }); } catch (e) {}
+    return true;
+  }
+
+  const panel = vscode.window.createWebviewPanel(
+    'unirtosNewProject',
+    `UniRTOS — ${title}`,
+    vscode.ViewColumn.One,
+    {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.file(context.extensionPath)]
+    }
+  );
+  newProjectPanel = panel;
+  panel.onDidDispose(() => { newProjectPanel = undefined; });
+
+  const file = path.join(context.extensionPath, 'src', 'webview', 'new-project.html');
+  let html = '<p>New project UI not found</p>';
+  try {
+    html = fs.readFileSync(file, 'utf8');
+  } catch (e) {
+    console.error('Failed to read new-project.html', e);
+  }
+
+  // inject header
+  html = injectHeaderIntoHtml(html, panel, context, title);
+
+  panel.webview.html = html;
+  
+  try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: passedExisting }); } catch (e) {}
+
+  // check if project is unirtos
+  const basic = runBasicEnvChecks(context);
+
+  panel.webview.onDidReceiveMessage(async (msg) => {
+    if (!msg || !msg.type) return;
+    if (msg.type === 'ready') {
+      sendPlatforms(panel.webview, platformKeys);
+      return;
+    }
+
+    if (msg.type === 'platformChanged') {
+      handlePlatformChanged(msg.value, platforms, panel.webview);
+      return;
+    }
+
+    if (msg.type === 'chooseDir') {
+      const uris = await vscode.window.showOpenDialog({
+        canSelectFiles: false,
+        canSelectFolders: true,
+        canSelectMany: false,
+        openLabel: 'Select folder to save SDK'
+      });
+      if (uris && uris.length > 0) {
+        panel.webview.postMessage({ type: 'setTargetDir', path: uris[0].fsPath });
+      }
+      return;
+    }
+
+    // show message from webview (info/warning/error)
+    if (msg.type === 'showMessage') {
+      try {
+        const level = (msg.level || 'info') as string;
+        const text = msg.text || '';
+        if (level === 'warning') vscode.window.showWarningMessage(text);
+        else if (level === 'error') vscode.window.showErrorMessage(text);
+        else vscode.window.showInformationMessage(text);
+      } catch (e) {
+        console.warn('Failed to show message from webview:', e);
+      }
+      return;
+    }
+
+    if (msg.type === 'create') {
+      const pickedPlatformKey = msg.platform as string | undefined;
+      const pickedModel = msg.model as string | undefined;
+      const pickedTargetDir = msg.targetDir as string | undefined;
+      const pickedProjectName = msg.projectName as string | undefined;
+
+      const infoMsg = pickedModel
+        ? UNIRTOS_REPO
+          ? `Selected: ${pickedPlatformKey} / ${pickedModel} — ${UNIRTOS_REPO}`
+          : `Selected: ${pickedPlatformKey} / ${pickedModel}`
+        : `Selected: ${pickedPlatformKey}`;
+      console.log(infoMsg);
+
+      const dest = await downloadAndCloneSdk(UNIRTOS_REPO, pickedTargetDir, pickedProjectName);
+      panel.dispose();
+      if (dest) {
+        try {
+          await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(dest), true);
+        } catch (e) {
+          console.warn('Failed to open cloned project folder:', e);
+        }
+      }
+      return;
+    }
+
+    if (msg.type === 'cancel') {
+      panel.dispose();
+      return;
+    }
+
+    if (msg.type === 'openDemo') {
+      // open the demo page (reuses existing demo handler)
+      try {
+        showNewProjectDemo(context);
+      } catch (e) {
+        console.warn('Failed to open demo page:', e);
+      }
+      return;
+    }
+  });
+
+  return true;
+}
+
+export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, projectName?: string): Promise<string | null> {
+  if (!sdkUrl) return null;
+
+  if (!targetDir) {
+    vscode.window.showWarningMessage('Please select a target directory to clone the SDK repository.');
+    return null;
+  }
+
+  const repoNameMatch = sdkUrl.match(/\/([^\/]+?)(?:\.git)?$/);
+  const repoName = repoNameMatch ? repoNameMatch[1].replace(/\.git$/, '') : 'repo';
+  const folderName = projectName && projectName.trim().length > 0 ? projectName.trim() : repoName;
+  const dest = path.join(targetDir as string, folderName);
+
+  if (fs.existsSync(dest)) {
+    const overwrite = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: `Folder ${dest} exists. Remove and re-clone?`, canPickMany: false });
+    if (overwrite !== 'Yes') return null;
+    try { fs.rmSync(dest, { recursive: true, force: true }); } catch (e) {}
+  }
+
+  const result = await runGitCloneWithProgress(sdkUrl, dest, repoName, targetDir as string);
+
   if (result.code !== 0) {
     vscode.window.showErrorMessage(`git clone failed: ${result.stderr || result.stdout}`);
-    return false;
+    return null;
   }
 
   // create an app.json manifest inside the demo project folder
@@ -270,10 +275,9 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, pr
   const createAppFile = writeAppJsonToFolder(dest, appManifest);
   if (!createAppFile) {
     vscode.window.showWarningMessage('Failed to write app config file.');
-    return false;
+    return null;
   }
 
-
-  vscode.window.showInformationMessage(`Cloned ${sdkUrl} -> ${dest}`);
-  return true;
+  vscode.window.showInformationMessage(`Cloned -> ${dest}`);
+  return dest;
 }
