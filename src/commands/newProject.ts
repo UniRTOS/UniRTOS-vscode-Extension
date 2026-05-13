@@ -114,6 +114,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
       const pickedPlatformKey = msg.platform as string | undefined;
       const pickedModel = msg.model as string | undefined;
       const pickedTargetDir = msg.targetDir as string | undefined;
+      const pickedProjectName = msg.projectName as string | undefined;
       
       const infoMsg = pickedModel
         ? UNIRTOS_REPO
@@ -122,7 +123,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
         : `Selected: ${pickedPlatformKey}`;
       console.log(infoMsg);
 
-      await downloadAndCloneSdk(UNIRTOS_REPO, pickedTargetDir);
+      await downloadAndCloneSdk(UNIRTOS_REPO, pickedTargetDir, pickedProjectName);
       panel.dispose();
       return;
     }
@@ -146,7 +147,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   return true;
 }
 
-export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string): Promise<boolean> {
+export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, projectName?: string): Promise<boolean> {
   if (!sdkUrl) return false;
 
   
@@ -156,7 +157,8 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string): P
   }
   const repoNameMatch = sdkUrl.match(/\/([^\/]+?)(?:\.git)?$/);
   const repoName = repoNameMatch ? repoNameMatch[1].replace(/\.git$/, '') : 'repo';
-  const dest = path.join(targetDir as string, repoName);
+  const folderName = projectName && projectName.trim().length > 0 ? projectName.trim() : repoName;
+  const dest = path.join(targetDir as string, folderName);
 
   if (fs.existsSync(dest)) {
     const overwrite = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: `Folder ${dest} exists. Remove and re-clone?`, canPickMany: false });
@@ -232,7 +234,15 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string): P
             }
           } else {
             const msg = text.split('\n')[0].trim();
-            if (msg) progress.report({ message: msg });
+            if (msg) {
+              const lower = msg.toLowerCase();
+              // only update progress 
+              if (lower.startsWith('remote:') || /pack-reused/i.test(msg) || /reused \d+/i.test(msg) || /total \d+/i.test(msg) || /^cloning\b/i.test(msg)) {
+                // skip reporting this noisy line
+              } else {
+                progress.report({ message: msg });
+              }
+            }
           }
         });
 
