@@ -7,6 +7,8 @@ import { injectHeaderIntoHtml } from './header';
 import * as fs from 'fs';
 import { runBasicEnvChecks } from './checkView';
 
+let newProjectPanel: vscode.WebviewPanel | undefined;
+
 export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
   // show to user list of platforms and models to choose and download the sdk
   let title = 'New Project';
@@ -21,7 +23,15 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     return true;
   }
 
-  // Instead of quick pick, open a webview to present platforms/models
+  // Use 1 tab only, not multiple ones
+  if (newProjectPanel) {
+    newProjectPanel.reveal(vscode.ViewColumn.One);
+    const basicExisting = runBasicEnvChecks(context);
+    const passedExisting = basicExisting.gitFound && basicExisting.unirtosFound && basicExisting.pythonOk && basicExisting.workspaceOk;
+    try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: passedExisting }); } catch (e) {}
+    return true;
+  }
+
   const panel = vscode.window.createWebviewPanel(
     'unirtosNewProject',
     `UniRTOS — ${title}`,
@@ -31,6 +41,8 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
       localResourceRoots: [vscode.Uri.file(context.extensionPath)]
     }
   );
+  newProjectPanel = panel;
+  panel.onDidDispose(() => { newProjectPanel = undefined; });
 
   const file = path.join(context.extensionPath, 'src', 'webview', 'new-project.html');
   let html = '<p>New project UI not found</p>';

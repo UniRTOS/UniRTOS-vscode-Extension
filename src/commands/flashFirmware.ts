@@ -4,6 +4,8 @@ import * as path from 'path';
 import { projectConfigPassed, showCheckRequirements } from './checkView';
 import { injectHeaderIntoHtml } from './header';
 
+let flashFirmwarePanel: vscode.WebviewPanel | undefined;
+
 async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: vscode.ExtensionContext, output: vscode.OutputChannel) {
   // run FlashToolCLI with the selected cfg file and stream output to the channel
   try {
@@ -181,6 +183,12 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
     return;
   }
 
+  // Use 1 tab only, not multiple ones
+  if (flashFirmwarePanel) {
+    flashFirmwarePanel.reveal(vscode.ViewColumn.One);
+    return;
+  }
+
   const panel = vscode.window.createWebviewPanel(
     'unirtosFlashFirmware',
     'UniRTOS — Flash Firmware',
@@ -190,6 +198,8 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
       localResourceRoots: [vscode.Uri.file(context.extensionPath)]
     }
   );
+  flashFirmwarePanel = panel;
+  panel.onDidDispose(() => { flashFirmwarePanel = undefined; });
 
   // prefer HTML under src/webview (like other pages), fallback to webview/ at repo root
   const file = path.join(context.extensionPath, 'src', 'webview', 'flash-firmware.html');

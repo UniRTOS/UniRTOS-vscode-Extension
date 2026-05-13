@@ -7,6 +7,8 @@ import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToF
 import { runBasicEnvChecks } from './checkView';
 import { injectHeaderIntoHtml } from './header';
 
+let newProjectDemoPanel: vscode.WebviewPanel | undefined;
+
 export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   // If global checks have not passed, disable this page and offer to open checks
   // if (!projectConfigPassed) {
@@ -20,6 +22,16 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   //   }
   //   return;
   // }
+
+  // Use 1 tab only, not multiple ones
+  if (newProjectDemoPanel) {
+    newProjectDemoPanel.reveal(vscode.ViewColumn.One);
+    const basicExisting = runBasicEnvChecks(context);
+    const passedExisting = basicExisting.gitFound && basicExisting.unirtosFound && basicExisting.pythonOk && basicExisting.workspaceOk;
+    try { newProjectDemoPanel.webview.postMessage({ type: 'setUniRTOSProject', value: passedExisting }); } catch (e) {}
+    return;
+  }
+
   const panel = vscode.window.createWebviewPanel(
     'unirtosNewProjectDemo',
     'UniRTOS — New Project (Demo)',
@@ -29,6 +41,8 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
       localResourceRoots: [vscode.Uri.file(context.extensionPath)]
     }
   );
+  newProjectDemoPanel = panel;
+  panel.onDidDispose(() => { newProjectDemoPanel = undefined; });
 
   // Inject html
   const file = path.join(context.extensionPath, 'src', 'webview', 'new-project-demo.html');
