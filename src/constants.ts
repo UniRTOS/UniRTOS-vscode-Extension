@@ -1,0 +1,1 @@
+export const UNIRTOS_REPO = 'https://github.com/UniRTOS/unirtos.git';
