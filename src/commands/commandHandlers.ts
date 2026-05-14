@@ -37,7 +37,7 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
           showCheckRequirements(context);
           return;
         case 'Build':
-          await runBuildScript(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '');
+          await runBuildScript(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '', context);
           return;
         case 'New Project':
           await handleNewProject(labelsArr, context);
