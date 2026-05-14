@@ -111,7 +111,7 @@ function removeUnirtosPrefix(dest: string, workspaceRoot: string, id: string): s
     const prefix = 'unirtos_';
     if (id && id.startsWith(prefix)) {
       const newId = id.substring(prefix.length);
-      const newDest = path.join(workspaceRoot, 'qos_applications', 'apps', newId);
+      const newDest = path.join(workspaceRoot, 'qos_applications', newId);
       if (newDest !== dest) {
         if (fs.existsSync(newDest)) {
           vscode.window.showWarningMessage(
@@ -173,22 +173,22 @@ function replaceTextInFile(targetPath: string, search: RegExp, replacement: stri
 function updateSdkFiles(workspaceRoot: string, demoEntry?: any): boolean {
   try {
     // step 4: Kconfig
-    let filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'Kconfig');
+    let filePath = path.join(workspaceRoot, 'qos_applications', 'Kconfig');
     let block = demoEntry.config.Kconfig;
     if (!appendTextToFileBottom(filePath, block)) return false;
 
     // step 5: CMakeLists
-    filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'CMakeLists.txt');
+    filePath = path.join(workspaceRoot, 'qos_applications', 'CMakeLists.txt');
     block = demoEntry.config.CMakeLists;
     if (!appendTextToFileBottom(filePath, block)) return false;
 
     // step 6: quecos_apps_config
-    filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'include', 'unirtos_apps_config.h.in');
+    filePath = path.join(workspaceRoot, 'qos_applications', 'include', 'unirtos_apps_config.h.in');
     block = demoEntry.config.quecos_apps_config;
     if (!appendTextToFileBottom(filePath, block)) return false;
 
     // step 7: apps_init.c — replace existing apps_init
-    filePath = path.join(workspaceRoot, 'qos_applications', 'apps', 'app_init', 'apps_init.c');
+    filePath = path.join(workspaceRoot, 'qos_applications', 'app_init', 'apps_init.c');
     block = demoEntry.config.apps_init;
     const fnRegex = /void\s+apps_init\s*\(\s*void\s*\)\s*\{[\s\S]*?\}/m;
     const replaced = replaceTextInFile(filePath, fnRegex, block);
@@ -247,16 +247,16 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
 
     // check workspace + sdk folder
     let workspaceRoot = folders[0].uri.fsPath;
-    // Look for qos_applications/apps at workspace root first, then one level deeper.
+    // Look for qos_applications at workspace root first, then one level deeper.
     let sdkRoot = workspaceRoot;
-    let sdkApps = path.join(sdkRoot, 'qos_applications', 'apps');
+    let sdkApps = path.join(sdkRoot, 'qos_applications');
     if (!fs.existsSync(sdkApps)) {
       try {
         const entries = fs.readdirSync(workspaceRoot);
         for (const e of entries) {
           const candidate = path.join(workspaceRoot, e);
           try {
-            const candidateApps = path.join(candidate, 'qos_applications', 'apps');
+            const candidateApps = path.join(candidate, 'qos_applications');
             if (fs.statSync(candidate).isDirectory() && fs.existsSync(candidateApps)) {
               sdkRoot = candidate;
               sdkApps = candidateApps;
@@ -280,8 +280,8 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
     // Update workspaceRoot to the detected SDK root so downstream operations use correct base
     workspaceRoot = sdkRoot;
 
-    // Destination: <workspaceRoot>/qos_applications/apps/<id>
-    let dest = path.join(workspaceRoot, 'qos_applications', 'apps', id);
+    // Destination: <workspaceRoot>/qos_applications/<id>
+    let dest = path.join(workspaceRoot, 'qos_applications', id);
     if (fs.existsSync(dest)) {
       const choice = await vscode.window.showWarningMessage(
         `Destination ${dest} already exists. Overwrite?`,
@@ -326,18 +326,18 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
 
     vscode.window.showInformationMessage(`Cloned demo project '${id}' to ${finalDest}`);
 
-    // Update sdk files
-    try {
-      const ok = updateSdkFiles(workspaceRoot, entry);
-      if (!ok) {
-        vscode.window.showWarningMessage('Failed to update SDK files.');
-        return;
-      }
-    } catch (e) {
-      vscode.window.showWarningMessage('Failed to update SDK files.');
-      console.warn('Failed to update SDK files:', e);
-      return;
-    }
+    // // Update sdk files
+    // try {
+    //   const ok = updateSdkFiles(workspaceRoot, entry);
+    //   if (!ok) {
+    //     vscode.window.showWarningMessage('Failed to update SDK files.');
+    //     return;
+    //   }
+    // } catch (e) {
+    //   vscode.window.showWarningMessage('Failed to update SDK files.');
+    //   console.warn('Failed to update SDK files:', e);
+    //   return;
+    // }
 
     // create an app.json manifest inside the demo project folder
     const appManifest: any = {
@@ -347,10 +347,10 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       createdBy: 'unirtos-extension'
     };
     const createAppFile = writeAppJsonToFolder(workspaceRoot, appManifest);
-    if (!createAppFile) {
-      vscode.window.showWarningMessage('Failed to write app config file.');
-      return;
-    }
+    // if (!createAppFile) {
+    //   vscode.window.showWarningMessage('Failed to write app config file.');
+    //   return;
+    // }
     
     vscode.window.showInformationMessage('Demo project created successfully.');
   } catch (e: any) {

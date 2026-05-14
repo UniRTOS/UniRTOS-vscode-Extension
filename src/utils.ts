@@ -32,7 +32,7 @@ export function handlePlatformChanged(msgValue: unknown, platforms: Record<strin
 
 // send platforms when webview is ready or on-demand
 export const sendPlatforms = (webview: vscode.Webview, platformKeys: string[]) => {
-webview.postMessage({ type: 'setPlatforms', platforms: platformKeys });
+    webview.postMessage({ type: 'setPlatforms', platforms: platformKeys });
 };
 
 /**

@@ -203,13 +203,6 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
       const pickedTargetDir = msg.targetDir as string | undefined;
       const pickedProjectName = msg.projectName as string | undefined;
 
-      const infoMsg = pickedModel
-        ? UNIRTOS_REPO
-          ? `Selected: ${pickedPlatformKey} / ${pickedModel} — ${UNIRTOS_REPO}`
-          : `Selected: ${pickedPlatformKey} / ${pickedModel}`
-        : `Selected: ${pickedPlatformKey}`;
-      console.log(infoMsg);
-
       const dest = await downloadAndCloneSdk(UNIRTOS_REPO, pickedTargetDir, pickedProjectName);
       panel.dispose();
       if (dest) {
