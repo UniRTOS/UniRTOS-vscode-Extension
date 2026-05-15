@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { projectConfigPassed, showCheckRequirements } from './checkView';
+import { runBasicEnvChecks } from './checkView';
 import { injectHeaderIntoHtml } from './header';
 
 let flashFirmwarePanel: vscode.WebviewPanel | undefined;
@@ -170,19 +170,6 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
 }
 
 export async function showFlashFirmware(context: vscode.ExtensionContext) {
-  // If global checks have not passed, disable this page and offer to open checks
-  if (!projectConfigPassed) {
-    const choice = await vscode.window.showWarningMessage(
-      'Environment checks have not passed — New Project (Demo) is disabled.',
-      { modal: true },
-      'Open Checks'
-    );
-    if (choice === 'Open Checks') {
-      showCheckRequirements(context);
-    }
-    return;
-  }
-
   // Use 1 tab only, not multiple ones
   if (flashFirmwarePanel) {
     flashFirmwarePanel.reveal(vscode.ViewColumn.One);
@@ -236,6 +223,13 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
   }
 
   panel.webview.html = html;
+
+  // check if project is unirtos
+  const basic = runBasicEnvChecks(context);
+  let projectConfigPassed = basic.gitFound && basic.unirtosFound && basic.pythonOk && basic.workspaceOk;
+  
+
+  panel.webview.postMessage({ type: 'setUniRTOSProject', value: projectConfigPassed });
 
   const output = vscode.window.createOutputChannel('UniRTOS Flash Firmware');
   // keep the output channel hidden until user wants to view; we'll show on first debug log

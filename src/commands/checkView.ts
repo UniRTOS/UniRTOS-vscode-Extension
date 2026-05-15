@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 
-export let projectConfigPassed = true;
+export let projectConfigPassed = false;
 
 function checkWorkspaceForSdk(context: vscode.ExtensionContext): boolean {
   try {
@@ -86,6 +86,10 @@ function checkPython3(): boolean {
  * Posts status messages via `post` and returns the results.
  */
 export function runBasicEnvChecks(context: vscode.ExtensionContext): { gitFound: boolean; unirtosFound: boolean; pythonOk: boolean; workspaceOk: boolean } {
+    if (projectConfigPassed) {
+        return { gitFound: true, unirtosFound: true, pythonOk: true, workspaceOk: true };
+    }
+    
     let gitFound = false;
     let unirtosFound = false;
 
@@ -114,7 +118,7 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { gitFound:
 
     const pythonOk = checkPython3(); // 3. python check
     const workspaceOk = checkWorkspaceForSdk(context); // 4. check if current workspace is UniRTOS SDK
-
+    projectConfigPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
     return { gitFound, unirtosFound, pythonOk, workspaceOk };
 }
 

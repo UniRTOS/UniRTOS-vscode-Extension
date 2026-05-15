@@ -73,16 +73,8 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
 
   // check if project is unirtos
   const basic = runBasicEnvChecks(context);
-  const gitFound = basic.gitFound;
-  const unirtosFound = basic.unirtosFound;
-
-  const pythonOk = basic.pythonOk; // 3. python check
-  const workspaceOk = basic.workspaceOk; // 4. check if current workspace is UniRTOS SDK
-
-  let projectConfigPassed = gitFound && unirtosFound && pythonOk && workspaceOk;
-  if (projectConfigPassed) {
-    panel.webview.postMessage({ type: 'setUniRTOSProject', value: true });
-  }
+  let projectConfigPassed = basic.gitFound && basic.unirtosFound && basic.pythonOk && basic.workspaceOk;
+  panel.webview.postMessage({ type: 'setUniRTOSProject', value: projectConfigPassed });
 
   // read platforms config and expose platforms list
   const platforms = platformFilePath(context) || {};
