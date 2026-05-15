@@ -63,10 +63,10 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
               await openUrlInIntegratedBrowser('https://forums.quectel.com/categories');
               return;
           case 'Offical Website':
-              await openUrlInIntegratedBrowser('https://www.quectel.com');
+              await openUrlInIntegratedBrowser('https://www.quectel.com.cn/unirtos/unirtos');
               return;
           case 'Document Center':
-              await openUrlInIntegratedBrowser('https://developer.quectel.com/en/');
+              await openUrlInIntegratedBrowser('https://www.quectel.com.cn/unirtos/software');
               return;
           default:
           const labels = labelsArr.join(', ');

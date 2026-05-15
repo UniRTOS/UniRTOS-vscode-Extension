@@ -3,7 +3,7 @@
   "displayName": "UniRTOS",
   "icon": "images/icon.png",
 	"publisher": "Quectel",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p ."
@@ -54,5 +54,13 @@
   "dependencies": {
     "@serialport/list": "^13.0.0",
     "serialport": "13.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/UniRTOS/UniRTOS-vscode-Extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/UniRTOS/UniRTOS-vscode-Extension/issues"
+  },
+  "homepage": "https://github.com/UniRTOS/UniRTOS-vscode-Extension#readme"
 }
