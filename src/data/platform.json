@@ -17,10 +17,13 @@
 		"EG800ZEU_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
 		"EG800ZCN_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
 		"EC800ZCN_LF": "https://github.com/UniRTOS/unirtos_network_demos.git",
-		"EC800ZCN_MF": "https://github.com/UniRTOS/unirtos_network_demos.git",
 		"EG800ZLA_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
 		"EG800ZGL_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
-		"EG800ZCN_LG": "https://github.com/UniRTOS/unirtos_network_demos.git"
+		"EG800ZCN_LG": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EG800ZCN_LH": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EG800ZEU_LH": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EG915ZEU_LA": "https://github.com/UniRTOS/unirtos_network_demos.git",
+		"EG800ZEU_LG": "https://github.com/UniRTOS/unirtos_network_demos.git"
 	},
 
 	"rda_8910_R05": {

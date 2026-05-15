@@ -18,10 +18,27 @@
 <body>
   <div id="header-root"></div>
   <h1>New Project — Demo</h1>
+  <div class="row" style="width:80%;">
+    <label style="display:flex; align-items:center; gap:8px; font-weight:500;">
+      <span style="position:relative;display:inline-block;">
+        <input id="toggle-current-workspace" type="checkbox" checked disabled style="width:auto;position:relative;z-index:1;" />
+      </span>
+      Use current workspace and folder
+    </label>
+  </div>
+  <div class="use-current-workspace">
   <div class="row">
     <label for="projectName">Project name</label>
     <input id="projectName" type="text" readonly placeholder="Enter project name" style="flex:1; padding:8px" />
   </div>
+  <div class="row">
+    <label for="targetDir">Save location (where SDK will be cloned)</label>
+    <div style="width:80%; gap:8px;">
+      <input id="targetDir" type="text" readonly style="flex:1; padding:8px" placeholder="Select folder..." />
+      <button id="choose-dir" style="width:120px">Choose...</button>
+    </div>
+  </div>
+</div>
 
   <div class="row">
     <label for="platform">Platform</label>
@@ -37,13 +54,6 @@
     <!-- options will be injected by the extension -->
   </select>
 
-  <div class="row">
-    <label for="targetDir">Save location (where SDK will be cloned)</label>
-    <div style="width:80%; gap:8px;">
-      <input id="targetDir" type="text" readonly style="flex:1; padding:8px" placeholder="Select folder..." />
-      <button id="choose-dir" style="width:120px">Choose...</button>
-    </div>
-  </div>
   <div class="row">
     <label for="sdkVersion">SDK version</label>
     <select id="sdkVersion" style="width:80%; padding:8px">
@@ -61,6 +71,30 @@
     (function() {
       const vscode = acquireVsCodeApi();
       const select = document.getElementById('demo-projects');
+      const localProjectContainer = document.querySelector('.use-current-workspace');
+      const localProjectToggle = document.getElementById('toggle-current-workspace');
+
+      function setLocalProjectEnabled(enabled) {
+        if (!localProjectContainer) {
+          return;
+        }
+
+        const disabled = enabled;
+        localProjectContainer.style.opacity = disabled ? '0.55' : '1';
+        localProjectContainer.style.pointerEvents = disabled ? 'none' : 'auto';
+
+        const controls = localProjectContainer.querySelectorAll('input, button, select, textarea');
+        controls.forEach(control => {
+          control.disabled = disabled;
+        });
+      }
+
+      if (localProjectToggle) {
+        setLocalProjectEnabled(localProjectToggle.checked);
+        localProjectToggle.addEventListener('change', (e) => {
+          setLocalProjectEnabled(e.target.checked);
+        });
+      }
 
       // notify extension this demo webview is ready to receive platforms/models
       vscode.postMessage({ type: 'ready' });

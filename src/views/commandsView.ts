@@ -32,7 +32,7 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
       const groups = [
         new CommandItem('Development', vscode.TreeItemCollapsibleState.Expanded, true),
         new CommandItem('Links', vscode.TreeItemCollapsibleState.Expanded, true),
-        new CommandItem('Old', vscode.TreeItemCollapsibleState.Expanded, true),
+        // new CommandItem('Old', vscode.TreeItemCollapsibleState.Expanded, true),
       ];
       return Promise.resolve(groups);
     }
