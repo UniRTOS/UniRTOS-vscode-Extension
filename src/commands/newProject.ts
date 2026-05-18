@@ -118,13 +118,12 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     return true;
   }
 
-  const basicExisting = runBasicEnvChecks(context);
-  const passedExisting = basicExisting.gitFound && basicExisting.unirtosFound && basicExisting.pythonOk && basicExisting.workspaceOk;
+  const basic = runBasicEnvChecks(context);
 
   // Use 1 tab only, not multiple ones
   if (newProjectPanel) {
     newProjectPanel.reveal(vscode.ViewColumn.One);
-    try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: passedExisting }); } catch (e) {}
+    try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed }); } catch (e) {}
     return true;
   }
 
@@ -153,10 +152,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
 
   panel.webview.html = html;
   
-  try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: passedExisting }); } catch (e) {}
-
-  // check if project is unirtos
-  const basic = runBasicEnvChecks(context);
+  try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed }); } catch (e) {}
 
   panel.webview.onDidReceiveMessage(async (msg) => {
     if (!msg || !msg.type) return;

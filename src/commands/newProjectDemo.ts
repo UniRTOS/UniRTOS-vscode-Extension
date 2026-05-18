@@ -4,7 +4,7 @@ import * as path from 'path';
 import { exec } from 'child_process';
 // import { projectConfigPassed, showCheckRequirements } from './checkView';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
-import { runBasicEnvChecks } from './checkView';
+import { runBasicEnvChecks, projectConfigPassed } from './checkView';
 import { injectHeaderIntoHtml } from './header';
 
 let newProjectDemoPanel: vscode.WebviewPanel | undefined;
@@ -27,8 +27,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   if (newProjectDemoPanel) {
     newProjectDemoPanel.reveal(vscode.ViewColumn.One);
     const basicExisting = runBasicEnvChecks(context);
-    const passedExisting = basicExisting.gitFound && basicExisting.unirtosFound && basicExisting.pythonOk && basicExisting.workspaceOk;
-    try { newProjectDemoPanel.webview.postMessage({ type: 'setUniRTOSProject', value: passedExisting }); } catch (e) {}
+    try { newProjectDemoPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basicExisting.configPassed }); } catch (e) {}
     return;
   }
 
@@ -73,8 +72,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
 
   // check if project is unirtos
   const basic = runBasicEnvChecks(context);
-  let projectConfigPassed = basic.gitFound && basic.unirtosFound && basic.pythonOk && basic.workspaceOk;
-  panel.webview.postMessage({ type: 'setUniRTOSProject', value: projectConfigPassed });
+  panel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
 
   // read platforms config and expose platforms list
   const platforms = platformFilePath(context) || {};
@@ -93,7 +91,9 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
     }
 
     // fallback to demo message handler
-    handleCreateDemoMessage(message, context);
+    if (message.type === 'createDemo') {
+      handleCreateDemoMessage(message, context);
+    }
   });
 }
 
@@ -211,7 +211,9 @@ function updateSdkFiles(workspaceRoot: string, demoEntry?: any): boolean {
  */
 
 async function handleCreateDemoMessage(message: any, context: vscode.ExtensionContext) {
-  if (!message || message.type !== 'createDemo') {
+  // check if config passed
+  if (!projectConfigPassed.configPassed) {
+    vscode.window.showErrorMessage(`${projectConfigPassed.reason}, cannot create demo project.`);
     return;
   }
 

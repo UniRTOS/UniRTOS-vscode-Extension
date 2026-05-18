@@ -226,10 +226,7 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
 
   // check if project is unirtos
   const basic = runBasicEnvChecks(context);
-  let projectConfigPassed = basic.gitFound && basic.unirtosFound && basic.pythonOk && basic.workspaceOk;
-  
-
-  panel.webview.postMessage({ type: 'setUniRTOSProject', value: projectConfigPassed });
+  panel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
 
   const output = vscode.window.createOutputChannel('UniRTOS Flash Firmware');
   // keep the output channel hidden until user wants to view; we'll show on first debug log
