@@ -318,8 +318,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       return;
     }
 
-    vscode.window.showInformationMessage(`Cloned demo project '${id}' to ${finalDest}`);
-
     // create an app.json manifest inside the demo project folder
     const appManifest: any = {
       id: id,
@@ -409,7 +407,7 @@ async function handleCreateDemoWithTarget(message: any, context: vscode.Extensio
       createdBy: 'unirtos-extension'
     };
     writeAppJsonToFolder(dest, appManifest);
-    vscode.window.showInformationMessage(`Cloned demo project '${id}' to ${dest}`);
+
     try {
       // Open the folder: Save location + project name (SDK folder)
       const openPath = path.join(targetDir, sdkFolderName);

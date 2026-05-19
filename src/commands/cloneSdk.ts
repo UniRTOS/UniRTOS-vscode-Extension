@@ -145,6 +145,5 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, pr
     return null;
   }
 
-  vscode.window.showInformationMessage(`Cloned -> ${dest}`);
   return dest;
 }
