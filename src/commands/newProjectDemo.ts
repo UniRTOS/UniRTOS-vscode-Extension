@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
+import { chooseDirectoryAndSet } from './cloneSdk';
+import { downloadAndCloneSdk } from './cloneSdk';
 // import { projectConfigPassed, showCheckRequirements } from './checkView';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
 import { UNIRTOS_REPO } from '../constants';
@@ -11,19 +13,6 @@ import { injectHeaderIntoHtml } from './header';
 let newProjectDemoPanel: vscode.WebviewPanel | undefined;
 
 export async function showNewProjectDemo(context: vscode.ExtensionContext) {
-  // If global checks have not passed, disable this page and offer to open checks
-  // if (!projectConfigPassed) {
-  //   const choice = await vscode.window.showWarningMessage(
-  //     'Environment checks have not passed — New Project (Demo) is disabled.',
-  //     { modal: true },
-  //     'Open Checks'
-  //   );
-  //   if (choice === 'Open Checks') {
-  //     showCheckRequirements(context);
-  //   }
-  //   return;
-  // }
-
   // Use 1 tab only, not multiple ones
   if (newProjectDemoPanel) {
     newProjectDemoPanel.reveal(vscode.ViewColumn.One);
@@ -79,7 +68,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   const platforms = platformFilePath(context) || {};
   const platformKeys = Object.keys(platforms);
 
-  panel.webview.onDidReceiveMessage((message) => {
+  panel.webview.onDidReceiveMessage(async (message) => {
     if (!message || !message.type) return;
     if (message.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
@@ -87,18 +76,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
     }
 
     if (message.type === 'chooseDir') {
-      void (async () => {
-        const selected = await vscode.window.showOpenDialog({
-          canSelectFiles: false,
-          canSelectFolders: true,
-          canSelectMany: false,
-          openLabel: 'Choose folder'
-        });
-
-        if (selected && selected.length > 0) {
-          panel.webview.postMessage({ type: 'setTargetDir', value: selected[0].fsPath });
-        }
-      })();
+      await chooseDirectoryAndSet(panel.webview, 'Choose folder', 'value');
       return;
     }
 
@@ -342,19 +320,6 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
 
     vscode.window.showInformationMessage(`Cloned demo project '${id}' to ${finalDest}`);
 
-    // // Update sdk files
-    // try {
-    //   const ok = updateSdkFiles(workspaceRoot, entry);
-    //   if (!ok) {
-    //     vscode.window.showWarningMessage('Failed to update SDK files.');
-    //     return;
-    //   }
-    // } catch (e) {
-    //   vscode.window.showWarningMessage('Failed to update SDK files.');
-    //   console.warn('Failed to update SDK files:', e);
-    //   return;
-    // }
-
     // create an app.json manifest inside the demo project folder
     const appManifest: any = {
       id: id,
@@ -362,11 +327,7 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
       demo: true,
       createdBy: 'unirtos-extension'
     };
-    const createAppFile = writeAppJsonToFolder(workspaceRoot, appManifest);
-    // if (!createAppFile) {
-    //   vscode.window.showWarningMessage('Failed to write app config file.');
-    //   return;
-    // }
+    writeAppJsonToFolder(workspaceRoot, appManifest);
     
     vscode.window.showInformationMessage('Demo project created successfully.');
   } catch (e: any) {
@@ -400,40 +361,9 @@ async function handleCreateDemoWithTarget(message: any, context: vscode.Extensio
       return;
     }
 
-    // Step 1: clone UNIRTOS SDK into targetDir/sdkFolderName
-    const sdkDest = path.join(targetDir, sdkFolderName);
-    if (fs.existsSync(sdkDest)) {
-      const choice = await vscode.window.showWarningMessage(
-        `Destination ${sdkDest} already exists. Overwrite?`,
-        { modal: true },
-        'Overwrite',
-        'Cancel'
-      );
-      if (choice !== 'Overwrite') {
-        vscode.window.showInformationMessage('SDK clone cancelled.');
-        return;
-      }
-      try { fs.rmSync(sdkDest, { recursive: true, force: true }); } catch (e) {}
-    }
-
-    try {
-      await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Cloning UniRTOS SDK into ${sdkDest}`, cancellable: false }, async () => {
-        await new Promise<void>((resolve, reject) => {
-          const cmd = `git clone ${UNIRTOS_REPO} "${sdkDest}"`;
-          exec(cmd, { cwd: targetDir }, (err, stdout, stderr) => {
-            if (err) {
-              reject(new Error(stderr || err.message));
-              return;
-            }
-            resolve();
-          });
-        });
-      });
-    } catch (e: any) {
-      vscode.window.showErrorMessage('Failed to clone UniRTOS SDK: ' + (e && e.message ? e.message : e));
-      console.error('Failed to clone UniRTOS SDK:', e);
-      return;
-    }
+    // Step 1: clone UniRTOS SDK into targetDir/sdkFolderName (shared)
+    const sdkDest = await downloadAndCloneSdk(UNIRTOS_REPO, targetDir, sdkFolderName);
+    if (!sdkDest) return;
 
     // verify qos_applications exists under sdkDest
     const sdkRoot = sdkDest;
