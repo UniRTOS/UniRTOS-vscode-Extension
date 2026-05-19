@@ -16,7 +16,7 @@ export async function runBuildScript(workspaceRoot: string, context: vscode.Exte
   const subKeys: string[] = [];
   for (const platformKey of platformKeys) {
     const platform = platforms[platformKey];
-    if (platform && typeof platform === 'object' && platformKey == 'eigen_718') {
+    if (platform && typeof platform === 'object') {
       const keys = Object.keys(platform);
       subKeys.push(...keys);
     }
