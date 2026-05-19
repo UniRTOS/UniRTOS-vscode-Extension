@@ -4,6 +4,7 @@ import * as path from 'path';
 import { exec } from 'child_process';
 // import { projectConfigPassed, showCheckRequirements } from './checkView';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
+import { UNIRTOS_REPO } from '../constants';
 import { runBasicEnvChecks, projectConfigPassed } from './checkView';
 import { injectHeaderIntoHtml } from './header';
 
@@ -85,6 +86,22 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
       return;
     }
 
+    if (message.type === 'chooseDir') {
+      void (async () => {
+        const selected = await vscode.window.showOpenDialog({
+          canSelectFiles: false,
+          canSelectFolders: true,
+          canSelectMany: false,
+          openLabel: 'Choose folder'
+        });
+
+        if (selected && selected.length > 0) {
+          panel.webview.postMessage({ type: 'setTargetDir', value: selected[0].fsPath });
+        }
+      })();
+      return;
+    }
+
     if (message.type === 'platformChanged') {
       handlePlatformChanged(message.value, platforms, panel.webview);
       return;
@@ -92,7 +109,12 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
 
     // fallback to demo message handler
     if (message.type === 'createDemo') {
-      handleCreateDemoMessage(message, context);
+      const payload = message.payload || {};
+      if (payload && payload.targetDir) {
+        handleCreateDemoWithTarget(message, context);
+      } else {
+        handleCreateDemoMessage(message, context);
+      }
     }
   });
 }
@@ -350,5 +372,123 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
   } catch (e: any) {
     vscode.window.showErrorMessage('Failed to clone demo project: ' + (e && e.message ? e.message : e));
     console.error('Failed to clone demo project', e);
+  }
+}
+
+async function handleCreateDemoWithTarget(message: any, context: vscode.ExtensionContext) {
+  // If the webview requested a custom target dir, clone directly into that folder
+  if (!message || !message.payload) return;
+  const payload = message.payload || {};
+  const id = payload.name;
+
+  try {
+    const demoFile = path.join(context.extensionPath, 'src', 'data', 'demo-projects.json');
+    const demoRaw = fs.readFileSync(demoFile, 'utf8');
+    const demoObj = JSON.parse(demoRaw || '{}');
+    const entry = demoObj[id];
+    const repo = entry && entry.repo ? entry.repo : '';
+
+    if (!repo) {
+      vscode.window.showErrorMessage('Demo project does not have a repository URL configured.');
+      return;
+    }
+
+    const targetDir = payload.targetDir;
+    const sdkFolderName = (payload.projectName && payload.projectName.trim()) ? payload.projectName.trim() : 'unirtos';
+    if (!targetDir) {
+      vscode.window.showErrorMessage('Please select a target directory.');
+      return;
+    }
+
+    // Step 1: clone UNIRTOS SDK into targetDir/sdkFolderName
+    const sdkDest = path.join(targetDir, sdkFolderName);
+    if (fs.existsSync(sdkDest)) {
+      const choice = await vscode.window.showWarningMessage(
+        `Destination ${sdkDest} already exists. Overwrite?`,
+        { modal: true },
+        'Overwrite',
+        'Cancel'
+      );
+      if (choice !== 'Overwrite') {
+        vscode.window.showInformationMessage('SDK clone cancelled.');
+        return;
+      }
+      try { fs.rmSync(sdkDest, { recursive: true, force: true }); } catch (e) {}
+    }
+
+    try {
+      await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: `Cloning UniRTOS SDK into ${sdkDest}`, cancellable: false }, async () => {
+        await new Promise<void>((resolve, reject) => {
+          const cmd = `git clone ${UNIRTOS_REPO} "${sdkDest}"`;
+          exec(cmd, { cwd: targetDir }, (err, stdout, stderr) => {
+            if (err) {
+              reject(new Error(stderr || err.message));
+              return;
+            }
+            resolve();
+          });
+        });
+      });
+    } catch (e: any) {
+      vscode.window.showErrorMessage('Failed to clone UniRTOS SDK: ' + (e && e.message ? e.message : e));
+      console.error('Failed to clone UniRTOS SDK:', e);
+      return;
+    }
+
+    // verify qos_applications exists under sdkDest
+    const sdkRoot = sdkDest;
+    const qosApps = path.join(sdkRoot, 'qos_applications');
+    if (!fs.existsSync(qosApps)) {
+      vscode.window.showErrorMessage(`Cloned SDK at ${sdkRoot} does not contain 'qos_applications' folder.`);
+      return;
+    }
+
+    // Step 2: clone demo project into <sdkRoot>/qos_applications/<id>
+    const dest = path.join(qosApps, id);
+    if (fs.existsSync(dest)) {
+      const choice2 = await vscode.window.showWarningMessage(
+        `Destination ${dest} already exists. Overwrite?`,
+        { modal: true },
+        'Overwrite',
+        'Cancel'
+      );
+      if (choice2 !== 'Overwrite') {
+        vscode.window.showInformationMessage('Demo clone cancelled.');
+        return;
+      }
+      try { fs.rmSync(dest, { recursive: true, force: true }); } catch (e) {}
+    }
+
+    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Cloning demo project', cancellable: false }, async () => {
+      await new Promise<void>((resolve, reject) => {
+        const cmd = `git clone ${repo} "${dest}"`;
+        exec(cmd, { cwd: qosApps }, (err, stdout, stderr) => {
+          if (err) {
+            reject(new Error(stderr || err.message));
+            return;
+          }
+          resolve();
+        });
+      });
+    });
+
+    const appManifest: any = {
+      id: id,
+      name: (entry && entry.name) ? entry.name : id,
+      demo: true,
+      createdBy: 'unirtos-extension'
+    };
+    writeAppJsonToFolder(dest, appManifest);
+    vscode.window.showInformationMessage(`Cloned demo project '${id}' to ${dest}`);
+    try {
+      // Open the folder: Save location + project name (SDK folder)
+      const openPath = path.join(targetDir, sdkFolderName);
+      await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(openPath), true);
+    } catch (e) {
+      console.warn('Failed to open Save location + project folder:', e);
+    }
+  } catch (e: any) {
+    vscode.window.showErrorMessage('Failed to clone demo project: ' + (e && e.message ? e.message : e));
+    console.error('Failed to clone demo project (custom target):', e);
   }
 }
