@@ -24,10 +24,10 @@
   <div id="header-root"></div>
   <h1>Flash UniRTOS Firmware</h1>
 
-  <div class="controls">
+    <div class="controls">
     <button id="backBtn" disabled>Back</button>
     <button id="nextBtn">Next</button>
-    <div class="step-indicator" id="stepIndicator">Step 1 / 5</div>
+    <div class="step-indicator" id="stepIndicator">Step 1 / 3</div>
   </div>
 
   <pre id="portsDebug" style="white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:8px;display:none;border:1px solid #eee;padding:8px;border-radius:4px;background:#fafafa"></pre>
@@ -40,20 +40,8 @@
     </div>
   </section>
 
-    <!-- Choose config file -->
-  <section id="tab2" class="tab-panel">
-    <h2>Choose Config file</h2>
-    <p>Config file is used to flash the firmware to the module.<br>We found this file, or you can choose the file by yourself.</p>
-    <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
-      <div id="selectedFile" style="color:#333">No file selected</div>
-      <div style="display:flex;gap:8px">
-        <button id="selectFileBtn" style="background:#007acc;color:#fff;padding:8px 12px;border-radius:6px">Select File</button>
-      </div>
-    </div>
-  </section>
-
   <!-- How-to QDLoader port -->
-  <section id="tab3" class="tab-panel">
+  <section id="tab2" class="tab-panel">
     <h2>QD Loader Port</h2>
     <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
       <img id="qdloaderImage" class="step-image" src="%%QDLOADER_IMAGE%%" alt="QD Loader port" />
@@ -61,26 +49,27 @@
     </div>
   </section>
 
-  <!-- Choose port -->
-  <section id="tab4" class="tab-panel">
-    <h2>Choose Port</h2>
-    <p>Choose from the list after identifying QDLoader port.<br><br>Please note, once EG800 enters download mode, you have 15 seconds to start the procress, or it will restart and exit download mode.</p>
-    <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
-      <label for="portSelect">Select USB port</label>
-      <select id="portSelect">
-        <option value="">(scanning...)</option>
-      </select>
-      <button id="refreshPorts" style="background:#555;color:#fff;padding:8px 12px;border-radius:6px">Refresh Ports</button>
+  <!-- Choose config file + Choose port (merged) -->
+  <section id="tab3" class="tab-panel">
+    <h2>Config File & Port</h2>
+    <p>Config file is used to flash the firmware to the module. We found this file, or you can choose the file yourself. Then select the QDLoader COM port below.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:600px">
+      <!-- selectedFile removed; using selectedFileSummary below -->
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label for="portSelect">Select USB port</label>
+        <select id="portSelect">
+          <option value="">(scanning...)</option>
+        </select>
+        <button id="refreshPorts" style="background:#555;color:#fff;padding:8px 12px;border-radius:6px">Refresh Ports</button>
+      </div>
     </div>
-  </section>
-
-  <!-- Summary -->
-  <section id="tab5" class="tab-panel">
-    <h2>Summary</h2>
-    <p>Review your selected COM port and Config file before flashing.</p>
-    <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
-      <div><strong>COM port:</strong> <span id="selectedPortSummary">(none)</span></div>
-      <div><strong>Config file:</strong> <span id="selectedFileSummary">(none)</span></div>
+    <div style="margin-top:16px;border-top:1px solid #eee;padding-top:12px">
+      <h3>Summary</h3>
+      <p>Review your selected COM port and Config file before flashing.</p>
+      <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
+        <div><strong>COM port:</strong> <span id="selectedPortSummary">(none)</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><strong>Config file:</strong> <span id="selectedFileSummary">(none)</span> <button id="selectFileBtn" style="background:#007acc;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px">Select File</button></div>
+      </div>
     </div>
   </section>
 
@@ -113,8 +102,8 @@
         if (idx + 1 === 2 && vscode) {
           vscode.postMessage({ command: 'requestPorts' });
         }
-        // when navigating to summary (step index 4), populate selections
-        if (idx + 1 === 4) {
+        // when navigating to summary (new step index 3), populate selections
+        if (idx + 1 === 3) {
           const ps = document.getElementById('selectedPortSummary');
           const fs = document.getElementById('selectedFileSummary');
           if (ps) ps.textContent = selectedPort || '(none)';
@@ -160,9 +149,9 @@
         }
           }
         else if (msg && msg.command === 'pickedFile') {
-          const sel = document.getElementById('selectedFile');
-            if (sel) sel.textContent = msg.file ? msg.file : 'No file selected';
-            selectedFile = msg.file || '';
+          const sum = document.getElementById('selectedFileSummary');
+          if (sum) sum.textContent = msg.file || '(none)';
+          selectedFile = msg.file || '';
         } else if (msg && msg.command === 'portsDebug') {
           const dbg = document.getElementById('portsDebug');
           if (!dbg) return;

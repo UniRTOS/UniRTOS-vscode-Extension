@@ -6,6 +6,28 @@ import { injectHeaderIntoHtml } from './header';
 
 let flashFirmwarePanel: vscode.WebviewPanel | undefined;
 
+function findQuecCfgInRelease(context: vscode.ExtensionContext): string | null {
+  try {
+    const folders = vscode.workspace.workspaceFolders || [];
+    for (const f of folders) {
+      const base = path.join(f.uri.fsPath, 'qos_build', 'release');
+      if (!fs.existsSync(base) || !fs.statSync(base).isDirectory()) continue;
+      const entries = fs.readdirSync(base);
+      for (const e of entries) {
+        try {
+          const candidate = path.join(base, e, 'quec_download_usb.ini');
+          if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+        } catch (err) {
+          // ignore
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('findQuecCfgInRelease failed:', e);
+  }
+  return null;
+}
+
 async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: vscode.ExtensionContext, output: vscode.OutputChannel) {
   // run FlashToolCLI with the selected cfg file and stream output to the channel
   try {
@@ -227,6 +249,16 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
   // check if project is unirtos
   const basic = runBasicEnvChecks(context);
   panel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
+
+  // Try to auto-detect a quec_download_usb.ini under qos_build/release/<firmware>/ and prefill the file selector
+  try {
+    const autoCfg = findQuecCfgInRelease(context);
+    if (autoCfg) {
+      panel.webview.postMessage({ command: 'pickedFile', file: autoCfg });
+    }
+  } catch (e) {
+    console.warn('Auto-detect cfg failed:', e);
+  }
 
   const output = vscode.window.createOutputChannel('UniRTOS Flash Firmware');
   // keep the output channel hidden until user wants to view; we'll show on first debug log
