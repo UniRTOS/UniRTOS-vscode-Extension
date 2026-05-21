@@ -59,14 +59,36 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
 
     const spawn = require('child_process').spawn;
 
+    // flag set when the tool outputs the success indicator
+    let sawSysresetFinish = false;
+    // rolling buffer to catch split output chunks
+    let outputBuffer = '';
+
     async function runCommand(cmd: { exe: string; args: string[] }) {
       return new Promise<number>((resolve) => {
         try {
           output.appendLine('> ' + [cmd.exe].concat(cmd.args || []).join(' '));
           const child = spawn(cmd.exe, cmd.args || [], { cwd: path.dirname(cmd.exe) || undefined });
 
-          if (child.stdout) child.stdout.on('data', (d: any) => output.append(String(d)));
-          if (child.stderr) child.stderr.on('data', (d: any) => output.append(String(d)));
+          if (child.stdout) child.stdout.on('data', (d: any) => {
+            const text = String(d);
+            output.append(text);
+            try {
+              outputBuffer += text;
+              // keep buffer bounded
+              if (outputBuffer.length > 8192) outputBuffer = outputBuffer.slice(-8192);
+              if (outputBuffer.toLowerCase().includes('sysreset finish')) sawSysresetFinish = true;
+            } catch {}
+          });
+          if (child.stderr) child.stderr.on('data', (d: any) => {
+            const text = String(d);
+            output.append(text);
+            try {
+              outputBuffer += text;
+              if (outputBuffer.length > 8192) outputBuffer = outputBuffer.slice(-8192);
+              if (outputBuffer.toLowerCase().includes('sysreset finish')) sawSysresetFinish = true;
+            } catch {}
+          });
 
           child.on('error', (err: any) => {
             output.appendLine('[flashFirmware] process error: ' + (err && err.message ? err.message : String(err)));
@@ -96,7 +118,14 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
         return;
       }
     }
-
+    // If we observed the sysreset finish marker, notify the webview and user
+    try {
+      if (sawSysresetFinish) {
+        output.appendLine('[flashFirmware] flashing completed successfully.');
+        try { webview.postMessage({ command: 'flashComplete', success: true }); } catch {}
+        try { vscode.window.showInformationMessage('Flashing completed successfully.'); } catch {}
+      }
+    } catch {}
   } catch (e) {
     output.appendLine('[flashFirmware] failed to start FlashToolCLI: ' + String(e));
   }

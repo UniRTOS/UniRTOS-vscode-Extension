@@ -26,10 +26,12 @@
     .file-summary { max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;padding:6px 8px;border:1px solid #e6e6e6;border-radius:4px;background:#fafafa;min-width:160px }
     .field-row { display:flex;align-items:center;gap:8px }
     .field-label { font-size:12px;color:#666;flex:0 0 auto;min-width:78px }
+    .notice { display:none;padding:8px 12px;border-radius:6px;background:#e6ffed;border:1px solid #b7f0c7;color:#064e16;margin-bottom:12px }
   </style>
 </head>
 <body>
   <div id="header-root"></div>
+  <div id="flashNotice" class="notice">Flashing completed successfully.</div>
   <h1>Flash UniRTOS Firmware</h1>
 
     <div class="controls">
@@ -175,6 +177,14 @@
           selectedPkg = msg.pkg || '';
           if (pkgEl) { const pkgPath = msg.pkg || derivePkgPath(msg.file); pkgEl.textContent = pkgPath ? basename(pkgPath) : '(none)'; pkgEl.title = pkgPath || '(none)'; }
           selectedFile = msg.file || '';
+        } else if (msg && msg.command === 'flashComplete') {
+          try {
+            const n = document.getElementById('flashNotice');
+            if (n) {
+              n.style.display = msg && msg.success ? 'block' : 'none';
+              if (msg && msg.success) setTimeout(() => { if (n) n.style.display = 'none'; }, 5000);
+            }
+          } catch (e) {}
         } else if (msg && msg.command === 'portsDebug') {
           const dbg = document.getElementById('portsDebug');
           if (!dbg) return;
