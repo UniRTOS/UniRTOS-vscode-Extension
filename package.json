@@ -3,7 +3,7 @@
   "displayName": "UniRTOS",
   "icon": "images/icon.png",
 	"publisher": "Quectel",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p ."

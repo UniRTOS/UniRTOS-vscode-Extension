@@ -32,6 +32,7 @@
 <body>
   <div id="header-root"></div>
   <div id="flashNotice" class="notice">Flashing completed successfully.</div>
+  <div id="flashError" class="notice" style="display:none;padding:8px 12px;border-radius:6px;background:#ffecec;border:1px solid #f5c2c2;color:#7a1a1a;margin-bottom:12px">Flashing failed.</div>
   <h1>Flash UniRTOS Firmware</h1>
 
     <div class="controls">
@@ -180,9 +181,18 @@
         } else if (msg && msg.command === 'flashComplete') {
           try {
             const n = document.getElementById('flashNotice');
-            if (n) {
-              n.style.display = msg && msg.success ? 'block' : 'none';
-              if (msg && msg.success) setTimeout(() => { if (n) n.style.display = 'none'; }, 5000);
+            const e = document.getElementById('flashError');
+            if (msg && msg.success) {
+              if (n) n.style.display = 'block';
+              if (e) e.style.display = 'none';
+              if (n) setTimeout(() => { if (n) n.style.display = 'none'; }, 5000);
+            } else {
+              if (n) n.style.display = 'none';
+              if (e) {
+                e.textContent = msg && msg.reason ? `Flashing failed: ${msg.reason}` : 'Flashing failed.';
+                e.style.display = 'block';
+                setTimeout(() => { if (e) e.style.display = 'none'; }, 8000);
+              }
             }
           } catch (e) {}
         } else if (msg && msg.command === 'portsDebug') {

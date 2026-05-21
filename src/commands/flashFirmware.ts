@@ -61,6 +61,8 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
 
     // flag set when the tool outputs the success indicator
     let sawSysresetFinish = false;
+    // flag when a burn step fails
+    let sawBurnFailed = false;
     // rolling buffer to catch split output chunks
     let outputBuffer = '';
 
@@ -77,7 +79,9 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
               outputBuffer += text;
               // keep buffer bounded
               if (outputBuffer.length > 8192) outputBuffer = outputBuffer.slice(-8192);
-              if (outputBuffer.toLowerCase().includes('sysreset finish')) sawSysresetFinish = true;
+              const buf = outputBuffer.toLowerCase();
+              if (buf.includes('sysreset finish')) sawSysresetFinish = true;
+              if (buf.includes('burn failed')) sawBurnFailed = true;
             } catch {}
           });
           if (child.stderr) child.stderr.on('data', (d: any) => {
@@ -85,8 +89,10 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
             output.append(text);
             try {
               outputBuffer += text;
+              const buf = outputBuffer.toLowerCase();
               if (outputBuffer.length > 8192) outputBuffer = outputBuffer.slice(-8192);
-              if (outputBuffer.toLowerCase().includes('sysreset finish')) sawSysresetFinish = true;
+              if (buf.includes('sysreset finish')) sawSysresetFinish = true;
+              if (buf.includes('burn failed')) sawBurnFailed = true;
             } catch {}
           });
 
@@ -107,6 +113,7 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
     }
 
     // Execute commands sequentially
+    let hadError = false;
     for (const c of commands) {
       // If exe is the packaged FlashToolCLI, validate it exists
       if (c.exe === exe && !fs.existsSync(c.exe)) {
@@ -115,15 +122,21 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
       }
       const code = await runCommand(c);
       if (code !== 0) {
-        return;
+        hadError = true;
+        break;
       }
     }
-    // If we observed the sysreset finish marker, notify the webview and user
+    // After running commands (or breaking on error), notify the webview and user based on observed markers
     try {
-      if (sawSysresetFinish) {
+      if (sawSysresetFinish && !hadError) {
         output.appendLine('[flashFirmware] flashing completed successfully.');
         try { webview.postMessage({ command: 'flashComplete', success: true }); } catch {}
         try { vscode.window.showInformationMessage('Flashing completed successfully.'); } catch {}
+      } else if (sawBurnFailed || hadError) {
+        const reason = sawBurnFailed ? 'burn failed' : 'process error';
+        output.appendLine('[flashFirmware] flashing failed (' + reason + ').');
+        try { webview.postMessage({ command: 'flashComplete', success: false, reason }); } catch {}
+        try { vscode.window.showErrorMessage('Flashing failed (' + reason + ').'); } catch {}
       }
     } catch {}
   } catch (e) {
@@ -207,28 +220,54 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
           defaultUri
         });
         if (uris && uris.length > 0) {
-          const cfgPath = uris[0].fsPath;
-          // Try to find a sibling .hbinpkg in the same directory
+          let chosen = uris[0].fsPath;
+          let cfgPath = '';
           let pkgPath = '';
           try {
-            const dir = path.dirname(cfgPath);
-            const base = path.basename(cfgPath, path.extname(cfgPath));
-            const expected = path.join(dir, base + '.hbinpkg');
-            if (fs.existsSync(expected) && fs.statSync(expected).isFile()) {
-              pkgPath = expected;
-            } else {
-              const entries = fs.readdirSync(dir);
-              for (const e of entries) {
-                if (e.toLowerCase().endsWith('.hbinpkg')) {
-                  pkgPath = path.join(dir, e);
-                  break;
+            const dir = path.dirname(chosen);
+            const ext = path.extname(chosen).toLowerCase();
+            if (ext === '.hbinpkg') {
+              // user picked package; prefer finding a sibling .ini for flashing
+              pkgPath = chosen;
+              // look for quec_download_usb.ini first, then any .ini
+              const prefer = path.join(dir, 'quec_download_usb.ini');
+              if (fs.existsSync(prefer) && fs.statSync(prefer).isFile()) {
+                cfgPath = prefer;
+              } else {
+                const entries = fs.readdirSync(dir);
+                for (const e of entries) {
+                  if (e.toLowerCase().endsWith('.ini')) { cfgPath = path.join(dir, e); break; }
                 }
               }
+            } else if (ext === '.ini') {
+              // user picked ini; use it for flashing and try to find sibling .hbinpkg
+              cfgPath = chosen;
+              const base = path.basename(chosen, path.extname(chosen));
+              const expected = path.join(dir, base + '.hbinpkg');
+              if (fs.existsSync(expected) && fs.statSync(expected).isFile()) {
+                pkgPath = expected;
+              } else {
+                const entries = fs.readdirSync(dir);
+                for (const e of entries) {
+                  if (e.toLowerCase().endsWith('.hbinpkg')) { pkgPath = path.join(dir, e); break; }
+                }
+              }
+            } else {
+              // neither .ini nor .hbinpkg: try to find .ini and .hbinpkg in same dir
+              const entries = fs.readdirSync(dir);
+              for (const e of entries) {
+                if (!cfgPath && e.toLowerCase().endsWith('.ini')) cfgPath = path.join(dir, e);
+                if (!pkgPath && e.toLowerCase().endsWith('.hbinpkg')) pkgPath = path.join(dir, e);
+                if (cfgPath && pkgPath) break;
+              }
+              // fallback: use chosen as cfgPath
+              if (!cfgPath) cfgPath = chosen;
             }
           } catch (e) {
             // ignore
+            cfgPath = chosen;
           }
-          webview.postMessage({ command: 'pickedFile', file: cfgPath, pkg: pkgPath });
+          webview.postMessage({ command: 'pickedFile', file: cfgPath || '', pkg: pkgPath || '' });
         } else {
           webview.postMessage({ command: 'pickedFile', file: '' , pkg: ''});
         }
