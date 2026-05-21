@@ -73,6 +73,7 @@
         <div class="summary-row" style="align-items:stretch">
           <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
             <div class="field-row"><div class="field-label">Config File</div><label id="selectedFileName" class="file-name-label" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">(none)</label></div>
+            <div class="field-row"><div class="field-label">Package</div><label id="selectedPkgName" class="file-name-label" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">(none)</label></div>
             <div class="field-row"><div class="field-label">Location</div><input id="selectedFilePath" class="file-summary" readonly title="(none)" value="(none)" /></div>
           </div>
           <button id="selectFileBtn" class="small-btn">Select File</button>
@@ -90,6 +91,7 @@
     // track user selections for summary
     let selectedPort = '';
     let selectedFile = '';
+    let selectedPkg = '';
 
     function showPanel(index) {
       panels.forEach((p, i) => p.classList.toggle('active', i === index));
@@ -114,8 +116,10 @@
         if (idx + 1 === 3) {
           const nameEl = document.getElementById('selectedFileName');
           const pathEl = document.getElementById('selectedFilePath');
+          const pkgEl = document.getElementById('selectedPkgName');
           if (pathEl) { pathEl.value = selectedFile || '(none)'; pathEl.title = selectedFile || '(none)'; }
           if (nameEl) { nameEl.textContent = selectedFile ? basename(selectedFile) : '(none)'; nameEl.title = selectedFile || '(none)'; }
+          if (pkgEl) { pkgEl.textContent = selectedPkg ? basename(selectedPkg) : (selectedFile ? basename(derivePkgPath(selectedFile)) : '(none)'); pkgEl.title = selectedPkg || (selectedFile ? derivePkgPath(selectedFile) : '(none)'); }
         }
       } else {
         // last panel -> trigger flash
@@ -164,8 +168,12 @@
         else if (msg && msg.command === 'pickedFile') {
           const nameEl = document.getElementById('selectedFileName');
           const pathEl = document.getElementById('selectedFilePath');
+          const pkgEl = document.getElementById('selectedPkgName');
           if (pathEl) { pathEl.value = msg.file || '(none)'; pathEl.title = msg.file || '(none)'; }
           if (nameEl) { nameEl.textContent = msg.file ? basename(msg.file) : '(none)'; nameEl.title = msg.file || '(none)'; }
+          // prefer pkg provided by extension; otherwise derive from file
+          selectedPkg = msg.pkg || '';
+          if (pkgEl) { const pkgPath = msg.pkg || derivePkgPath(msg.file); pkgEl.textContent = pkgPath ? basename(pkgPath) : '(none)'; pkgEl.title = pkgPath || '(none)'; }
           selectedFile = msg.file || '';
         } else if (msg && msg.command === 'portsDebug') {
           const dbg = document.getElementById('portsDebug');

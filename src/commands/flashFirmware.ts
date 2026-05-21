@@ -178,13 +178,34 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
           defaultUri
         });
         if (uris && uris.length > 0) {
-          webview.postMessage({ command: 'pickedFile', file: uris[0].fsPath });
+          const cfgPath = uris[0].fsPath;
+          // Try to find a sibling .hbinpkg in the same directory
+          let pkgPath = '';
+          try {
+            const dir = path.dirname(cfgPath);
+            const base = path.basename(cfgPath, path.extname(cfgPath));
+            const expected = path.join(dir, base + '.hbinpkg');
+            if (fs.existsSync(expected) && fs.statSync(expected).isFile()) {
+              pkgPath = expected;
+            } else {
+              const entries = fs.readdirSync(dir);
+              for (const e of entries) {
+                if (e.toLowerCase().endsWith('.hbinpkg')) {
+                  pkgPath = path.join(dir, e);
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
+          webview.postMessage({ command: 'pickedFile', file: cfgPath, pkg: pkgPath });
         } else {
-          webview.postMessage({ command: 'pickedFile', file: '' });
+          webview.postMessage({ command: 'pickedFile', file: '' , pkg: ''});
         }
       } catch (e) {
         output.appendLine('[flashFirmware] pickFile handler error: ' + String(e));
-        webview.postMessage({ command: 'pickedFile', file: '' });
+        webview.postMessage({ command: 'pickedFile', file: '' , pkg: ''});
       }
       return;
     }
@@ -254,7 +275,22 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
   try {
     const autoCfg = findQuecCfgInRelease(context);
     if (autoCfg) {
-      panel.webview.postMessage({ command: 'pickedFile', file: autoCfg });
+      // try to find sibling .hbinpkg for auto-detected cfg
+      let pkgPath = '';
+      try {
+        const dir = path.dirname(autoCfg);
+        const base = path.basename(autoCfg, path.extname(autoCfg));
+        const expected = path.join(dir, base + '.hbinpkg');
+        if (fs.existsSync(expected) && fs.statSync(expected).isFile()) {
+          pkgPath = expected;
+        } else {
+          const entries = fs.readdirSync(dir);
+          for (const e of entries) {
+            if (e.toLowerCase().endsWith('.hbinpkg')) { pkgPath = path.join(dir, e); break; }
+          }
+        }
+      } catch {}
+      panel.webview.postMessage({ command: 'pickedFile', file: autoCfg, pkg: pkgPath });
     }
   } catch (e) {
     console.warn('Auto-detect cfg failed:', e);
