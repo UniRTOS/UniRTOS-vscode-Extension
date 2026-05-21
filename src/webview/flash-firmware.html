@@ -18,6 +18,14 @@
     .step-image{max-width:600px;width:100%;height:auto;display:block}
     .controls{display:flex;align-items:center;gap:12px;margin-top:12px}
     .step-indicator{color:#666;font-size:13px}
+    /* summary/layout helpers */
+    .summary { display:flex;flex-direction:column;gap:12px }
+    .summary-row { display:flex;align-items:center;gap:8px;flex-wrap:wrap }
+    .port-select { min-width:160px }
+    .small-btn { background:#555;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;border:0;cursor:pointer }
+    .file-summary { max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;padding:6px 8px;border:1px solid #e6e6e6;border-radius:4px;background:#fafafa;min-width:160px }
+    .field-row { display:flex;align-items:center;gap:8px }
+    .field-label { font-size:12px;color:#666;flex:0 0 auto;min-width:78px }
   </style>
 </head>
 <body>
@@ -51,24 +59,24 @@
 
   <!-- Choose config file + Choose port (merged) -->
   <section id="tab3" class="tab-panel">
-    <h2>Config File & Port</h2>
-    <p>Config file is used to flash the firmware to the module. We found this file, or you can choose the file yourself. Then select the QDLoader COM port below.</p>
-    <div style="display:flex;flex-direction:column;gap:12px;max-width:600px">
-      <!-- selectedFile removed; using selectedFileSummary below -->
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <label for="portSelect">Select USB port</label>
-        <select id="portSelect">
-          <option value="">(scanning...)</option>
-        </select>
-        <button id="refreshPorts" style="background:#555;color:#fff;padding:8px 12px;border-radius:6px">Refresh Ports</button>
-      </div>
-    </div>
-    <div style="margin-top:16px;border-top:1px solid #eee;padding-top:12px">
-      <h3>Summary</h3>
-      <p>Review your selected COM port and Config file before flashing.</p>
-      <div style="display:flex;flex-direction:column;gap:8px;max-width:480px">
-        <div><strong>COM port:</strong> <span id="selectedPortSummary">(none)</span></div>
-        <div style="display:flex;align-items:center;gap:8px"><strong>Config file:</strong> <span id="selectedFileSummary">(none)</span> <button id="selectFileBtn" style="background:#007acc;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px">Select File</button></div>
+    <h2>Summary</h2>
+    <div class="summary">
+      <p>We detected the following port + config file:</p>
+      <div style="max-width:480px;display:flex;flex-direction:column;gap:8px">
+        <div class="summary-row">
+          <strong style="flex:0 0 auto">COM port:</strong>
+          <select id="portSelect" class="port-select">
+            <option value="">(scanning...)</option>
+          </select>
+          <button id="refreshPorts" class="small-btn">Refresh Ports</button>
+        </div>
+        <div class="summary-row" style="align-items:stretch">
+          <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
+            <div class="field-row"><div class="field-label">Config File</div><label id="selectedFileName" class="file-name-label" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">(none)</label></div>
+            <div class="field-row"><div class="field-label">Location</div><input id="selectedFilePath" class="file-summary" readonly title="(none)" value="(none)" /></div>
+          </div>
+          <button id="selectFileBtn" class="small-btn">Select File</button>
+        </div>
       </div>
     </div>
   </section>
@@ -104,10 +112,10 @@
         }
         // when navigating to summary (new step index 3), populate selections
         if (idx + 1 === 3) {
-          const ps = document.getElementById('selectedPortSummary');
-          const fs = document.getElementById('selectedFileSummary');
-          if (ps) ps.textContent = selectedPort || '(none)';
-          if (fs) fs.textContent = selectedFile || '(none)';
+          const nameEl = document.getElementById('selectedFileName');
+          const pathEl = document.getElementById('selectedFilePath');
+          if (pathEl) { pathEl.value = selectedFile || '(none)'; pathEl.title = selectedFile || '(none)'; }
+          if (nameEl) { nameEl.textContent = selectedFile ? basename(selectedFile) : '(none)'; nameEl.title = selectedFile || '(none)'; }
         }
       } else {
         // last panel -> trigger flash
@@ -145,12 +153,19 @@
           }
           // set initial selected port and watch for changes
           selectedPort = select.value || (select.options && select.options.length > 0 ? select.options[0].value : '');
-          select.addEventListener('change', () => { selectedPort = select.value; });
+          const portSummary = document.getElementById('selectedPortSummary');
+          if (portSummary) {
+            portSummary.textContent = selectedPort || '(none)';
+            portSummary.title = selectedPort || '(none)';
+          }
+          select.addEventListener('change', () => { selectedPort = select.value; if (portSummary) { portSummary.textContent = selectedPort || '(none)'; portSummary.title = selectedPort || '(none)'; } });
         }
           }
         else if (msg && msg.command === 'pickedFile') {
-          const sum = document.getElementById('selectedFileSummary');
-          if (sum) sum.textContent = msg.file || '(none)';
+          const nameEl = document.getElementById('selectedFileName');
+          const pathEl = document.getElementById('selectedFilePath');
+          if (pathEl) { pathEl.value = msg.file || '(none)'; pathEl.title = msg.file || '(none)'; }
+          if (nameEl) { nameEl.textContent = msg.file ? basename(msg.file) : '(none)'; nameEl.title = msg.file || '(none)'; }
           selectedFile = msg.file || '';
         } else if (msg && msg.command === 'portsDebug') {
           const dbg = document.getElementById('portsDebug');
@@ -165,5 +180,13 @@
     const selectFileBtn = document.getElementById('selectFileBtn');
     if (selectFileBtn) selectFileBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'pickFile' }); });
   </script>
+    <script>
+      // helper to extract basename from a path
+      function basename(path) {
+        if (!path) return '';
+        const parts = path.split(/\\|\//);
+        return parts[parts.length - 1] || path;
+      }
+    </script>
 </body>
 </html>
