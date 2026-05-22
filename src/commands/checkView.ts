@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as https from 'https';
+import * as os from 'os';
 import { execSync } from 'child_process';
 
 export let projectConfigPassed = { configPassed: false, reason: 'Test not run yet' };
@@ -9,7 +11,6 @@ function checkWorkspaceForSdk(context: vscode.ExtensionContext): boolean {
   try {
     const folders = vscode.workspace.workspaceFolders;
     if (!folders || folders.length === 0) {
-      // post('unirtos_sdk', `Current folder: <span class="bad">No workspace open</span>`);
       return false;
     }
 
@@ -41,14 +42,11 @@ function checkWorkspaceForSdk(context: vscode.ExtensionContext): boolean {
     }
 
     if (hasBatch) {
-      // post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="ok">Yes</span>`);
       return true;
     } else {
-      // post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="bad">No</span> — Not detected as UniRTOS project`);
       return false;
     }
   } catch (e) {
-    // post('unirtos_sdk', `Detected Current Folder as UniRTOS project: <span class="bad">Check failed</span>`);
     return false;
   }
 }
@@ -65,18 +63,14 @@ function checkPython3(): boolean {
     if (found) {
       const major = parseInt(found[1], 10);
       if (major >= 3) {
-        // post('python', `Python3 or higher: <span class="ok">Yes</span> — ${pyOut}`);
         return true;
       } else {
-        // post('python', `Python3 or higher: <span class="bad">No</span> — ${pyOut} (requires Python 3+)`);
         return false;
       }
     } else {
-      // post('python', `Python3 or higher: <span class="bad">No</span> — unexpected version output: ${pyOut}`);
       return false;
     }
   } catch (e) {
-    // post('python', `Python3 or higher: <span class="bad">Not found</span> — install from <a href="https://www.python.org/downloads/">python.org</a>`);
     return false;
   }
 }
@@ -100,29 +94,34 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
   let unirtosFound = false;
 
   try {
-    const git = execSync('git --version').toString().trim();
-    // post('git', `Git: <span class="ok">${git}</span>`);
+    execSync('git --version').toString().trim();
     gitFound = true;
   } catch (e) {
-    // post('git', `Git: <span class="bad">Not found</span> — install from <a href="https://git-scm.com/downloads">git-scm.com</a>`);
     gitFound = false;
     projectConfigPassed = { configPassed: false, reason: 'Git not found!' };
     return projectConfigPassed;
   }
 
   try {
-    let out: string;
     try {
-      out = execSync('unirtos.exe --version', { stdio: 'pipe' }).toString().trim();
+      execSync('unirtossdf.exe --version', { stdio: 'pipe' }).toString().trim();
     } catch (e) {
-      out = execSync('unirtos --version', { stdio: 'pipe' }).toString().trim();
+      execSync('unirtossdf --version', { stdio: 'pipe' }).toString().trim();
     }
-    // post('unirtos', `UniRTOS compiler tool: <span class="ok">${out}</span>`);
     unirtosFound = true;
   } catch (e) {
-    // post('unirtos', `UniRTOS compiler tool: <span class="bad">Not found</span>  — insure you installed all requirments here <a href="https://github.com/UniRTOS/unirtos">requirments</a>`);
     unirtosFound = false;
-    projectConfigPassed = { configPassed: false, reason: 'UniRTOS tool chain tool not found please check our site!' };
+    // Ask the user if they want to download the toolchain
+    vscode.window.showInformationMessage('UniRTOS toolchain tool not found. Do you want to install the UniRTOS toolchain?', 'Yes', 'No')
+      .then(answer => {
+        if (answer === 'Yes') {
+          downloadUnirtos(context).catch(err => {
+            vscode.window.showErrorMessage('Failed to download UniRTOS toolchain: ' + String(err));
+          });
+        }
+      });
+
+    projectConfigPassed = { configPassed: false, reason: 'UniRTOS toolchain tool not found please check our site!' };
     return projectConfigPassed;
   }
 
@@ -134,6 +133,84 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
 
   projectConfigPassed = { configPassed: true, reason: 'All checks passed' };
   return projectConfigPassed;
+}
+
+async function downloadUnirtos(context: vscode.ExtensionContext): Promise<void> {
+  const url = 'https://www.quectel.com.cn/wp-content/uploads/2026/04/unirtos-toolchain_1.0.3.zip';
+  const defaultDir = path.join(os.tmpdir(), 'unirtos-downloads');
+
+  let targetDir = defaultDir;
+  try {
+    const pick = await vscode.window.showOpenDialog({
+      defaultUri: vscode.Uri.file(defaultDir),
+      canSelectFiles: false,
+      canSelectFolders: true,
+      openLabel: 'Select download folder (Cancel to use temp)',
+      canSelectMany: false
+    });
+    if (pick && pick.length > 0) {
+      targetDir = pick[0].fsPath;
+    }
+  } catch (e) {
+    // ignore and fall back to defaultDir
+  }
+
+  try {
+    fs.mkdirSync(targetDir, { recursive: true });
+  } catch (e) {
+    // ignore
+  }
+  const dest = path.join(targetDir, 'unirtos-toolchain_1.0.3.zip');
+
+  await vscode.window.withProgress({
+    location: vscode.ProgressLocation.Notification,
+    title: 'Downloading UniRTOS toolchain',
+    cancellable: true
+  }, (progress, token) => {
+    return new Promise<void>((resolve, reject) => {
+      const req = https.get(url, (res) => {
+        if ((res.statusCode || 0) >= 400) {
+          reject(new Error('Download failed with status ' + res.statusCode));
+          return;
+        }
+        const total = parseInt(String(res.headers['content-length'] || '0'), 10) || 0;
+        let received = 0;
+        const fileStream = fs.createWriteStream(dest);
+
+        token.onCancellationRequested(() => {
+          try { req.destroy(); } catch (e) {}
+          try { fileStream.close(); } catch (e) {}
+          try { fs.unlinkSync(dest); } catch (e) {}
+          reject(new Error('Download cancelled'));
+        });
+
+        res.on('data', (chunk: Buffer) => {
+          received += chunk.length;
+          if (total) {
+            const inc = (chunk.length / total) * 100;
+            progress.report({ increment: inc });
+          }
+        });
+
+        res.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+          fileStream.close(() => {
+            vscode.window.showInformationMessage('Downloaded UniRTOS toolchain to: ' + dest);
+            resolve();
+          });
+        });
+
+        fileStream.on('error', (err) => {
+          reject(err);
+        });
+      });
+
+      req.on('error', (err) => {
+        reject(err);
+      });
+    });
+  });
 }
 
 export function showCheckRequirements(context: vscode.ExtensionContext) {
@@ -180,11 +257,5 @@ export function showCheckRequirements(context: vscode.ExtensionContext) {
   }
 
   panel.webview.html = html;
-
-  // Optionally attempt basic checks and post messages to the webview
-  const webview = panel.webview;
-  // const post = (id: string, value: string) => webview.postMessage({ type: 'status', id, value });
-
-  // 1. Basic checks using environment - best effort
   projectConfigPassed = runBasicEnvChecks(context);
 }

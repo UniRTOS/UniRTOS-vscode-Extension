@@ -4,7 +4,6 @@ import * as path from 'path';
 import { exec } from 'child_process';
 import { chooseDirectoryAndSet } from './cloneSdk';
 import { downloadAndCloneSdk } from './cloneSdk';
-// import { projectConfigPassed, showCheckRequirements } from './checkView';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
 import { UNIRTOS_REPO } from '../constants';
 import { runBasicEnvChecks, projectConfigPassed } from './checkView';

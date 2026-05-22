@@ -1,8 +1,20 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { platformFilePath } from '../utils';
+import { runBasicEnvChecks, projectConfigPassed } from './checkView';
 
 export async function runBuildScript(workspaceRoot: string, context: vscode.ExtensionContext): Promise<boolean> {
+  // run basic environment checks first
+  try {
+    const basic = runBasicEnvChecks(context);
+    if (!basic.configPassed) {
+      vscode.window.showErrorMessage((basic.reason || 'unknown') + ' Environment checks failed.');
+      return false;
+    }
+  } catch (e) {
+    vscode.window.showErrorMessage('Failed to run environment checks: ' + String(e));
+    return false;
+  }
   // Get available platforms and collect all sub-keys
   const platforms = platformFilePath(context);
   const platformKeys = Object.keys(platforms);
