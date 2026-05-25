@@ -90,14 +90,9 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
     return projectConfigPassed;
   }
 
-  let gitFound = false;
-  let unirtosFound = false;
-
   try {
     execSync('git --version').toString().trim();
-    gitFound = true;
   } catch (e) {
-    gitFound = false;
     projectConfigPassed = { configPassed: false, reason: 'Git not found!' };
     return projectConfigPassed;
   }
@@ -106,11 +101,9 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
     try {
       execSync('unirtos.exe --version', { stdio: 'pipe' }).toString().trim();
     } catch (e) {
-      execSync('unirtos.exe --version', { stdio: 'pipe' }).toString().trim();
+      execSync('unirtos --version', { stdio: 'pipe' }).toString().trim();
     }
-    unirtosFound = true;
   } catch (e) {
-    unirtosFound = false;
     // Ask the user if they want to download the toolchain
     vscode.window.showInformationMessage('UniRTOS toolchain tool not found. Do you want to install the UniRTOS toolchain?', 'Yes', 'No')
       .then(answer => {
@@ -196,7 +189,7 @@ async function downloadUnirtos(context: vscode.ExtensionContext): Promise<void> 
 
         fileStream.on('finish', () => {
           fileStream.close(() => {
-            vscode.window.showInformationMessage('Downloaded UniRTOS toolchain to: ' + dest);
+            vscode.window.showInformationMessage('Please install the downloaded UniRTOS toolchain and try again. From: ' + dest);
             resolve();
           });
         });

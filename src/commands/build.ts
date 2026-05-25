@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
 import { platformFilePath } from '../utils';
-import { runBasicEnvChecks, projectConfigPassed } from './checkView';
+import { runBasicEnvChecks } from './checkView';
 
 export async function runBuildScript(workspaceRoot: string, context: vscode.ExtensionContext): Promise<boolean> {
   // run basic environment checks first

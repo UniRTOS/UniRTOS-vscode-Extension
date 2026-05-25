@@ -6,7 +6,7 @@ import { chooseDirectoryAndSet } from './cloneSdk';
 import { downloadAndCloneSdk } from './cloneSdk';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
 import { UNIRTOS_REPO } from '../constants';
-import { runBasicEnvChecks, projectConfigPassed } from './checkView';
+import { runBasicEnvChecks } from './checkView';
 import { injectHeaderIntoHtml } from './header';
 
 let newProjectDemoPanel: vscode.WebviewPanel | undefined;
@@ -211,6 +211,7 @@ function updateSdkFiles(workspaceRoot: string, demoEntry?: any): boolean {
 
 async function handleCreateDemoMessage(message: any, context: vscode.ExtensionContext) {
   // check if config passed
+  const projectConfigPassed = runBasicEnvChecks(context);
   if (!projectConfigPassed.configPassed) {
     vscode.window.showErrorMessage(`${projectConfigPassed.reason}, cannot create demo project.`);
     return;
