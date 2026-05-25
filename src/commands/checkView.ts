@@ -104,9 +104,9 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
 
   try {
     try {
-      execSync('unirtossdf.exe --version', { stdio: 'pipe' }).toString().trim();
+      execSync('unirtos.exe --version', { stdio: 'pipe' }).toString().trim();
     } catch (e) {
-      execSync('unirtossdf --version', { stdio: 'pipe' }).toString().trim();
+      execSync('unirtos.exe --version', { stdio: 'pipe' }).toString().trim();
     }
     unirtosFound = true;
   } catch (e) {
