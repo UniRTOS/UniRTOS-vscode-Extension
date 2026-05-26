@@ -28,7 +28,7 @@
   </div>
   <div class="row">
     <label for="model">Model (optional)</label>
-    <select id="model"><option value="">— none —</option></select>
+    <select id="model"></select>
   </div>
   <div class="row">
     <label for="targetDir">Save location (where SDK will be cloned)</label>
@@ -107,10 +107,13 @@
       }
       if (msg.type === 'setModels') {
         const modelSel = document.getElementById('model');
-        modelSel.innerHTML = '<option value="">— none —</option>';
-        msg.models.forEach(m => {
+        modelSel.innerHTML = '';
+        msg.models.forEach((m) => {
           const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSel.appendChild(opt);
         });
+        if (msg.models && msg.models.length > 0) {
+          modelSel.value = msg.models[0];
+        }
       }
       if (msg.type === 'setTargetDir') {
         const input = document.getElementById('targetDir');

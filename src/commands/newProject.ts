@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { downloadAndCloneSdk, chooseDirectoryAndSet } from './cloneSdk';
 import { showNewProjectDemo } from './newProjectDemo';
-import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
+import { platformFilePath, sendPlatforms, handlePlatformChanged } from '../utils';
 import { injectHeaderIntoHtml } from './header';
 import * as fs from 'fs';
 import { runBasicEnvChecks } from './checkView';
@@ -94,8 +94,9 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     if (msg.type === 'create') {
       const pickedTargetDir = msg.targetDir as string | undefined;
       const pickedProjectName = msg.projectName as string | undefined;
+      const pickedModel = msg.model as string | undefined;
 
-      const dest = await downloadAndCloneSdk(UNIRTOS_REPO, pickedTargetDir, pickedProjectName);
+      const dest = await downloadAndCloneSdk(UNIRTOS_REPO, pickedTargetDir, pickedProjectName, pickedModel);
       panel.dispose();
       if (dest) {
         try {

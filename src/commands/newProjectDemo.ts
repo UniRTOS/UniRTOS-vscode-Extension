@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { chooseDirectoryAndSet } from './cloneSdk';
-import { downloadAndCloneSdk } from './cloneSdk';
+import { chooseDirectoryAndSet, downloadAndCloneSdk } from './cloneSdk';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
 import { UNIRTOS_REPO } from '../constants';
 import { runBasicEnvChecks } from './checkView';
@@ -67,10 +66,37 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   const platforms = platformFilePath(context) || {};
   const platformKeys = Object.keys(platforms);
 
+  // attempt to read `app.json` model from the current workspace (if any)
+  let defaultModel: string | undefined;
+  try {
+    const folders = vscode.workspace.workspaceFolders;
+    if (folders && folders.length > 0) {
+      const workspaceRoot = folders[0].uri.fsPath;
+      const appJsonPath = path.join(workspaceRoot, 'app.json');
+      if (fs.existsSync(appJsonPath)) {
+        try {
+          const raw = fs.readFileSync(appJsonPath, 'utf8');
+          const parsed = JSON.parse(raw || '{}');
+          if (parsed && typeof parsed.model === 'string' && parsed.model.trim().length > 0) {
+            defaultModel = parsed.model.trim();
+          }
+        } catch (e) {
+          // ignore parse errors
+        }
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
   panel.webview.onDidReceiveMessage(async (message) => {
     if (!message || !message.type) return;
     if (message.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
+      // if we detected a default model in the workspace, send it so the webview can pre-select
+      if (defaultModel) {
+        try { panel.webview.postMessage({ type: 'setModelValue', value: defaultModel }); } catch (e) {}
+      }
       return;
     }
 
@@ -81,6 +107,10 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
 
     if (message.type === 'platformChanged') {
       handlePlatformChanged(message.value, platforms, panel.webview);
+      // after posting models, ask webview to select the workspace model if available
+      if (defaultModel) {
+        try { panel.webview.postMessage({ type: 'setModelValue', value: defaultModel }); } catch (e) {}
+      }
       return;
     }
 
@@ -88,9 +118,9 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
     if (message.type === 'createDemo') {
       const payload = message.payload || {};
       if (payload && payload.targetDir) {
-        handleCreateDemoWithTarget(message, context);
+        handleCreateDemoWithTarget(message, context); // create new project
       } else {
-        handleCreateDemoMessage(message, context);
+        handleCreateDemoMessage(message, context); // use current project
       }
     }
   });
@@ -210,6 +240,8 @@ function updateSdkFiles(workspaceRoot: string, demoEntry?: any): boolean {
  */
 
 async function handleCreateDemoMessage(message: any, context: vscode.ExtensionContext) {
+  // use current project
+
   // check if config passed
   const projectConfigPassed = runBasicEnvChecks(context);
   if (!projectConfigPassed.configPassed) {
@@ -335,13 +367,15 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
 }
 
 async function handleCreateDemoWithTarget(message: any, context: vscode.ExtensionContext) {
+  // create new project
+
   // If the webview requested a custom target dir, clone directly into that folder
   if (!message || !message.payload) return;
   const payload = message.payload || {};
   const id = payload.name;
 
   try {
-    const demoFile = path.join(context.extensionPath, 'src', 'data', 'demo-projects.json');
+    const demoFile = path.join(context.extensionPath, 'src', 'data', 'demo-projects.json'); // get demo repo url
     const demoRaw = fs.readFileSync(demoFile, 'utf8');
     const demoObj = JSON.parse(demoRaw || '{}');
     const entry = demoObj[id];
@@ -360,7 +394,7 @@ async function handleCreateDemoWithTarget(message: any, context: vscode.Extensio
     }
 
     // Step 1: clone UniRTOS SDK into targetDir/sdkFolderName (shared)
-    const sdkDest = await downloadAndCloneSdk(UNIRTOS_REPO, targetDir, sdkFolderName);
+    const sdkDest = await downloadAndCloneSdk(UNIRTOS_REPO, targetDir, sdkFolderName, payload.model, true);
     if (!sdkDest) return;
 
     // verify qos_applications exists under sdkDest

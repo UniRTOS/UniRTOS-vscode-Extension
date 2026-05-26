@@ -1,3 +1,10 @@
+## 1.0.3
+- .Download Unirtos toolchain when not found.
+- .Simplfy flashing steps
+- .Update build page to support user settings
+- .Update icon
+- .Update Header template
+
 ## 1.0.2
 - .Update flashing page
 - .Support hbinpkg file for flashing

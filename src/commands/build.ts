@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 import { exec } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 import { platformFilePath } from '../utils';
 import { runBasicEnvChecks } from './checkView';
 
@@ -39,15 +41,36 @@ export async function runBuildScript(workspaceRoot: string, context: vscode.Exte
     return false;
   }
 
-  // Ask user to select a device
-  const selectedDevice = await vscode.window.showQuickPick(
-    subKeys,
-    { placeHolder: 'Select a device' }
-  );
+  // Try to read selected device from app.json "model" property in workspace root
+  let selectedDevice: string | undefined;
+  try {
+    const appJsonPath = path.join(workspaceRoot, 'app.json');
+    if (fs.existsSync(appJsonPath)) {
+      const content = fs.readFileSync(appJsonPath, 'utf8');
+      const appJson = JSON.parse(content);
+      if (appJson && typeof appJson.model === 'string') {
+        if (subKeys.includes(appJson.model)) {
+          selectedDevice = appJson.model;
+        } else {
+          vscode.window.showWarningMessage(`Device "${appJson.model}" from app.json not found in platform list.`);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to read app.json:', e);
+  }
 
+  // If no valid model found in app.json, ask the user
   if (!selectedDevice) {
-    vscode.window.showInformationMessage('Build skipped. You can build later using the Build command.');
-    return false;
+    selectedDevice = await vscode.window.showQuickPick(
+      subKeys,
+      { placeHolder: 'Select a device' }
+    );
+
+    if (!selectedDevice) {
+      vscode.window.showInformationMessage('Build skipped. You can build later using the Build command.');
+      return false;
+    }
   }
 
   // Ask user if they want to build the SDK for the selected device

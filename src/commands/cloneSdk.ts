@@ -109,7 +109,7 @@ async function runGitCloneWithProgress(sdkUrl: string, dest: string, repoName: s
   );
 }
 
-export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, projectName?: string): Promise<string | null> {
+export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, projectName?: string, model?: string, demo: boolean = false): Promise<string | null> {
   if (!sdkUrl) return null;
 
   if (!targetDir) {
@@ -136,9 +136,13 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, pr
   }
 
   const appManifest: any = {
-    demo: false,
+    demo: !!demo,
     createdBy: 'unirtos-extension'
   };
+  if (model && typeof model === 'string' && model.trim().length > 0) {
+    appManifest.model = model.trim();
+  }
+
   const createAppFile = writeAppJsonToFolder(dest, appManifest);
   if (!createAppFile) {
     vscode.window.showWarningMessage('Failed to write app config file.');

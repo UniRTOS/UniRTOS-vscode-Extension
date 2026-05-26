@@ -21,7 +21,7 @@
   <div class="row" style="width:80%;">
     <label style="display:flex; align-items:center; gap:8px; font-weight:500;">
       <span style="position:relative;display:inline-block;">
-        <input id="toggle-current-workspace" type="checkbox" checked style="width:auto;position:relative;z-index:1;" />
+        <input id="toggle-current-workspace" type="checkbox" style="width:auto;position:relative;z-index:1;" />
       </span>
       Use current workspace and folder
     </label>
@@ -147,10 +147,28 @@
         if (msg.type === 'setModels') {
           const modelSel = document.getElementById('model');
           if (modelSel) {
-            modelSel.innerHTML = '<option value="">— none —</option>';
+            modelSel.innerHTML = '';
             (msg.models || []).forEach(m => {
               const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSel.appendChild(opt);
             });
+            if (msg.models && msg.models.length > 0) {
+              modelSel.value = msg.models[0];
+            }
+          }
+        }
+
+        if (msg.type === 'setModelValue') {
+          const modelSel = document.getElementById('model');
+          if (modelSel && typeof msg.value === 'string' && msg.value.length > 0) {
+            // ensure option exists
+            let exists = false;
+            for (let i = 0; i < modelSel.options.length; i++) {
+              if (modelSel.options[i].value === msg.value) { exists = true; break; }
+            }
+            if (!exists) {
+              const opt = document.createElement('option'); opt.value = msg.value; opt.textContent = msg.value; modelSel.insertBefore(opt, modelSel.firstChild);
+            }
+            modelSel.value = msg.value;
           }
         }
 
