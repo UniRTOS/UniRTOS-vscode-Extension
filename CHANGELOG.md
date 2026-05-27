@@ -1,3 +1,10 @@
+## 1.0.4
+- .add debug command with serial monitor
+- .Save version to app.json
+- .update header and design for all pages
+- .simplify flashing page
+- .Update theme based on user settings.
+
 ## 1.0.3
 - .Download Unirtos toolchain when not found.
 - .Simplfy flashing steps

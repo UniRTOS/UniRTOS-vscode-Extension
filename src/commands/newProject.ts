@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { downloadAndCloneSdk, chooseDirectoryAndSet } from './cloneSdk';
 import { showNewProjectDemo } from './newProjectDemo';
-import { platformFilePath, sendPlatforms, handlePlatformChanged } from '../utils';
+import { platformFilePath, sendPlatforms, handlePlatformChanged, setupWebviewTheme } from '../utils';
 import { injectHeaderIntoHtml } from './header';
 import * as fs from 'fs';
 import { runBasicEnvChecks } from './checkView';
@@ -60,10 +60,18 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   
   try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed }); } catch (e) {}
 
+  try { setupWebviewTheme(panel); } catch (e) { /* ignore if helper missing */ }
+
   panel.webview.onDidReceiveMessage(async (msg) => {
     if (!msg || !msg.type) return;
     if (msg.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
+      // If there's only one platform, pre-send its models so the webview can populate `model` without a platform selector
+      try {
+        if (platformKeys.length === 1) {
+          handlePlatformChanged(platformKeys[0], platforms, panel.webview);
+        }
+      } catch (e) { /* ignore */ }
       return;
     }
 

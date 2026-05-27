@@ -5,6 +5,7 @@ import { showCheckRequirements } from './checkView';
 import { handleNewProject } from './newProject';
 import { showNewProjectDemo } from './newProjectDemo';
 import { showFlashFirmware } from './flashFirmware';
+import { openSerialMonitor } from './debug';
 import { runBuildScript } from './build';
 
 export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
@@ -55,6 +56,9 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
           }
           case 'Flash':
             showFlashFirmware(context);
+            return;
+          case 'Debug':
+            await openSerialMonitor(context);
             return;
           case 'Github':
               await openUrlInIntegratedBrowser('https://github.com/UniRTOS');

@@ -5,31 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UniRTOS Flash Firmware</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial; padding: 20px; color: #222 }
-    h1 { color: #0066cc }
-    pre { background:#f3f3f3; padding:10px; border-radius:4px; overflow:auto }
-    a { color: #0066cc }
-
-    /* page-specific */
-    /* full-page layout (no card) - content flows like other webviews */
-    button { background:#007acc;color:#fff;border:0;padding:10px 16px;border-radius:6px;font-size:14px;cursor:pointer }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial; padding: 12px; }
+    .row { margin-bottom: 8px; }
+    label { display:block; font-weight:600; margin-bottom:4px }
+    
+    .actions { display:flex; gap:8px; margin-top:12px }
+    .actions button { flex:1 }
+    
     .tab-panel{display:none;margin-top:12px}
     .tab-panel.active{display:block}
-    .step-image{max-width:600px;width:100%;height:auto;display:block}
-    .controls{display:flex;align-items:center;gap:12px;margin-top:12px}
-    .step-indicator{color:#666;font-size:13px}
-    /* summary/layout helpers */
+    
     .summary { display:flex;flex-direction:column;gap:12px }
-    .summary-row { display:flex;align-items:center;gap:8px;flex-wrap:wrap }
-    .port-select { min-width:160px }
-    .small-btn { background:#555;color:#fff;padding:6px 10px;border-radius:6px;font-size:13px;border:0;cursor:pointer }
-    /* keep the main Flash button blue while other small buttons remain gray */
-    #flashBtn { background:#007acc;color:#fff }
+    
+    /* Grid layout with explicit matching column definitions */
+    .summary-row { 
+      display: grid; 
+      /* Label: 100px | Control: Fills remaining space uniformly | Buttons: Exact identical width */
+      grid-template-columns: 100px 1fr 120px; 
+      gap: 12px; 
+      align-items: center; 
+      margin-bottom: 12px;
+    }
+    
+    /* Select and Input are now perfectly identical in sizing and boxing */
+    .port-select, .file-summary { 
+      width: 100%; 
+      box-sizing: border-box; 
+      height: 36px;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 14px;
+    }
+
+    .file-summary[readonly] {
+      background: #fafafa;
+      border-color: #e6e6e6;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    /* Action buttons share exact matching dimensions */
+    .small-btn { 
+      width: 100%; /* Spans the entire 120px grid column allotment */
+      box-sizing: border-box;
+      background: #555;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 13px;
+      border: 0;
+      cursor: pointer; 
+      height: 36px;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    #flashBtn { 
+      background: #007acc;
+      color: #fff;
+      width: auto; 
+      padding: 0 24px;
+    }
     #flashBtn:hover { filter:brightness(0.95) }
-    .file-summary { max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;padding:6px 8px;border:1px solid #e6e6e6;border-radius:4px;background:#fafafa;min-width:160px }
-    .field-row { display:flex;align-items:center;gap:8px }
-    .field-label { font-size:12px;color:#666;flex:0 0 auto;min-width:78px }
+    
+    .field-label { font-weight:600; }
+    
     .notice { display:none;padding:8px 12px;border-radius:6px;background:#e6ffed;border:1px solid #b7f0c7;color:#064e16;margin-bottom:12px }
+    .notice.error { background:#ffecec;border:1px solid #f5c2c2;color:#7a1a1a }
+    
+    .flash-actions { margin-top:16px; display: flex; }
+    h1 { color: #0066cc }
   </style>
 </head>
 <body>
@@ -38,51 +87,41 @@
   <div id="flashError" class="notice" style="display:none;padding:8px 12px;border-radius:6px;background:#ffecec;border:1px solid #f5c2c2;color:#7a1a1a;margin-bottom:12px">Flashing failed.</div>
   <h1>Flash UniRTOS Firmware</h1>
 
-    <div class="controls">
-  <button id="flashBtn" class="small-btn">Flash Firmware</button>
-  </div>
-
   <pre id="portsDebug" style="white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:8px;display:none;border:1px solid #eee;padding:8px;border-radius:4px;background:#fafafa"></pre>
 
-  <!-- Summary (only panel) -->
   <section id="tab3" class="tab-panel active">
-    <h2>Summary</h2>
     <div class="summary">
-      <p>We detected the following port + config file:</p>
-      <div style="max-width:480px;display:flex;flex-direction:column;gap:8px">
+      <div style="max-width:600px; display:flex; flex-direction:column; gap:8px">
+        
         <div class="summary-row">
-          <strong style="flex:0 0 auto">COM port:</strong>
+          <div class="field-label">COM port:</div>
           <select id="portSelect" class="port-select">
             <option value="">(scanning...)</option>
           </select>
           <button id="refreshPorts" class="small-btn">Refresh Ports</button>
         </div>
-        <div class="summary-row" style="align-items:stretch">
-          <div style="display:flex;flex-direction:column;gap:6px;flex:1;min-width:0">
-            <div class="field-row"><div class="field-label">Config File</div><label id="selectedFileName" class="file-name-label" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">(none)</label></div>
-            <div class="field-row"><div class="field-label">Package</div><label id="selectedPkgName" class="file-name-label" style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block">(none)</label></div>
-            <div class="field-row" style="align-items:center;gap:8px">
-              <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
-                <div class="field-label">Location</div>
-                <input id="selectedFilePath" class="file-summary" readonly title="(none)" value="(none)" />
-              </div>
-              <button id="selectFileBtn" class="small-btn">Select File</button>
-            </div>
-          </div>
+        
+        <div class="summary-row">
+          <div class="field-label">Location:</div>
+          <input id="selectedFilePath" class="file-summary" readonly title="(none)" value="(none)" />
+          <button id="selectFileBtn" class="small-btn">Select File</button>
         </div>
+        
       </div>
     </div>
   </section>
 
+  <div class="flash-actions">
+    <button id="flashBtn" class="small-btn">Flash Firmware</button>
+  </div>
+
   <script>
-    const vscode = acquireVsCodeApi ? acquireVsCodeApi() : null;
+    const vscode = typeof acquireVsCodeApi !== 'undefined' ? acquireVsCodeApi() : null;
     const panels = Array.from(document.querySelectorAll('.tab-panel'));
-    // If only the summary panel exists, request ports immediately
     if (vscode && panels.length === 1) {
       vscode.postMessage({ command: 'requestPorts' });
     }
 
-    // track user selections for summary
     let selectedPort = '';
     let selectedFile = '';
     let selectedPkg = '';
@@ -95,10 +134,9 @@
 
     window.addEventListener('message', event => {
       const msg = event.data;
-     if (msg && msg.command === 'ports') {
+      if (msg && msg.command === 'ports') {
         const select = document.getElementById('portSelect');
         if (!select) return;
-        // clear
         select.innerHTML = '';
         const ports = Array.isArray(msg.ports) ? msg.ports : [];
         if (ports.length === 0) {
@@ -108,48 +146,35 @@
             const opt = document.createElement('option'); opt.value = p.value || p.label || ''; opt.textContent = p.label || p.value || p;
             select.appendChild(opt);
           }
-          // set initial selected port and watch for changes
           selectedPort = select.value || (select.options && select.options.length > 0 ? select.options[0].value : '');
-          const portSummary = document.getElementById('selectedPortSummary');
-          if (portSummary) {
-            portSummary.textContent = selectedPort || '(none)';
-            portSummary.title = selectedPort || '(none)';
-          }
-          select.addEventListener('change', () => { selectedPort = select.value; if (portSummary) { portSummary.textContent = selectedPort || '(none)'; portSummary.title = selectedPort || '(none)'; } });
         }
-          }
-        else if (msg && msg.command === 'pickedFile') {
-          const nameEl = document.getElementById('selectedFileName');
-          const pathEl = document.getElementById('selectedFilePath');
-          const pkgEl = document.getElementById('selectedPkgName');
-          if (pathEl) { pathEl.value = msg.file || '(none)'; pathEl.title = msg.file || '(none)'; }
-          if (nameEl) { nameEl.textContent = msg.file ? basename(msg.file) : '(none)'; nameEl.title = msg.file || '(none)'; }
-          // prefer pkg provided by extension; otherwise derive from file
-          selectedPkg = msg.pkg || '';
-          if (pkgEl) { const pkgPath = msg.pkg || derivePkgPath(msg.file); pkgEl.textContent = pkgPath ? basename(pkgPath) : '(none)'; pkgEl.title = pkgPath || '(none)'; }
-          selectedFile = msg.file || '';
-        } else if (msg && msg.command === 'flashComplete') {
-          try {
-            const n = document.getElementById('flashNotice');
-            const e = document.getElementById('flashError');
-            if (msg && msg.success) {
-              if (n) n.style.display = 'block';
-              if (e) e.style.display = 'none';
-              if (n) setTimeout(() => { if (n) n.style.display = 'none'; }, 5000);
-            } else {
-              if (n) n.style.display = 'none';
-              if (e) {
-                e.textContent = msg && msg.reason ? `Flashing failed: ${msg.reason}` : 'Flashing failed.';
-                e.style.display = 'block';
-                setTimeout(() => { if (e) e.style.display = 'none'; }, 8000);
-              }
+      }
+      else if (msg && msg.command === 'pickedFile') {
+        const pathEl = document.getElementById('selectedFilePath');
+        if (pathEl) { pathEl.value = msg.file || '(none)'; pathEl.title = msg.file || '(none)'; }
+        selectedFile = msg.file || '';
+      } else if (msg && msg.command === 'flashComplete') {
+        try {
+          const n = document.getElementById('flashNotice');
+          const e = document.getElementById('flashError');
+          if (msg && msg.success) {
+            if (n) n.style.display = 'block';
+            if (e) e.style.display = 'none';
+            if (n) setTimeout(() => { if (n) n.style.display = 'none'; }, 5000);
+          } else {
+            if (n) n.style.display = 'none';
+            if (e) {
+              e.textContent = msg && msg.reason ? `Flashing failed: ${msg.reason}` : 'Flashing failed.';
+              e.style.display = 'block';
+              setTimeout(() => { if (e) e.style.display = 'none'; }, 8000);
             }
-          } catch (e) {}
-        } else if (msg && msg.command === 'portsDebug') {
-          const dbg = document.getElementById('portsDebug');
-          if (!dbg) return;
-          dbg.style.display = 'block';
-          dbg.textContent = msg.debug || '';
+          }
+        } catch (err) {}
+      } else if (msg && msg.command === 'portsDebug') {
+        const dbg = document.getElementById('portsDebug');
+        if (!dbg) return;
+        dbg.style.display = 'block';
+        dbg.textContent = msg.debug || '';
       }
     });
 
@@ -159,14 +184,11 @@
     if (selectFileBtn) selectFileBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'pickFile' }); });
     const flashBtn = document.getElementById('flashBtn');
     if (flashBtn) flashBtn.addEventListener('click', () => { triggerFlash(); });
+    
+    const portSelectEl = document.getElementById('portSelect');
+    if(portSelectEl) {
+      portSelectEl.addEventListener('change', () => { selectedPort = portSelectEl.value; });
+    }
   </script>
-    <script>
-      // helper to extract basename from a path
-      function basename(path) {
-        if (!path) return '';
-        const parts = path.split(/\\|\//);
-        return parts[parts.length - 1] || path;
-      }
-    </script>
 </body>
 </html>

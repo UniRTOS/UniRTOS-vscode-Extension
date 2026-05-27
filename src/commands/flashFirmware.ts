@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { runBasicEnvChecks } from './checkView';
 import { injectHeaderIntoHtml } from './header';
+import { setupWebviewTheme } from '../utils';
 
 let flashFirmwarePanel: vscode.WebviewPanel | undefined;
 
@@ -334,6 +335,8 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
   }
 
   panel.webview.html = html;
+
+  try { setupWebviewTheme(panel); } catch (e) { /* ignore if helper missing */ }
 
   // check if project is unirtos
   const basic = runBasicEnvChecks(context);

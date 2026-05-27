@@ -3,7 +3,7 @@
   "displayName": "UniRTOS",
   "icon": "images/icon.png",
 	"publisher": "Quectel",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p ."
@@ -11,6 +11,9 @@
   "engines": {
     "vscode": "^1.60.0"
   },
+  "extensionDependencies": [
+    "ms-vscode.vscode-serial-monitor"
+  ],
   "activationEvents": [
     "onView:unirtos.commands",
     "onCommand:unirtos.refreshCommands",

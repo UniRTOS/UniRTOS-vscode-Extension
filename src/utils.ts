@@ -35,12 +35,43 @@ export const sendPlatforms = (webview: vscode.Webview, platformKeys: string[]) =
     webview.postMessage({ type: 'setPlatforms', platforms: platformKeys });
 };
 
+export function setupWebviewTheme(panel: vscode.WebviewPanel) {
+    function sendTheme() {
+        try {
+            const vwin: any = vscode.window as any;
+            const kind = vwin && vwin.activeColorTheme && vwin.activeColorTheme.kind;
+            const ColorThemeKind: any = (vscode as any).ColorThemeKind || { Light: 1 };
+            const theme = (kind === ColorThemeKind.Light) ? 'light' : 'dark';
+            panel.webview.postMessage({ type: 'theme', theme });
+        } catch (e) {
+            // ignore
+        }
+    }
+    sendTheme();
+    const vwin: any = vscode.window as any;
+    const disp = (typeof vwin.onDidChangeActiveColorTheme === 'function')
+        ? vwin.onDidChangeActiveColorTheme(() => sendTheme())
+        : { dispose() { /* noop */ } };
+    panel.onDidDispose(() => disp.dispose());
+}
+
 /**
  * Write a minimal `app.json` manifest into `folderPath`.
  * Returns true on success, false on error.
  */
 export function writeAppJsonToFolder(folderPath: string, appManifest: any): boolean {
     try {
+        // add computed version if missing: model + "R01A01_BETA_OCPU" + date(YYYYMMDD)
+        if (!appManifest.version) {
+            const model = (appManifest && typeof appManifest.model === 'string') ? appManifest.model : '';
+            const now = new Date();
+            const yyyy = now.getFullYear();
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const dd = String(now.getDate()).padStart(2, '0');
+            const date = `${yyyy}${mm}${dd}`;
+            appManifest.version = `${model}R01A01_BETA_OCPU${date}`;
+        }
+
         const appJsonPath = path.join(folderPath, 'app.json');
         fs.writeFileSync(appJsonPath, JSON.stringify(appManifest, null, 2), 'utf8');
         exec(`attrib +h "${appJsonPath}"`); // hide the file on Windows

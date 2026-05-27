@@ -9,6 +9,11 @@
     .row { margin-bottom: 8px; }
     label { display:block; font-weight:600; margin-bottom:4px }
     select, button { width:80%; padding:8px; }
+    /* Shared control sizing to match new-project layout */
+    .field-control { width:100%; padding:8px; box-sizing:border-box; }
+    .field-group { display:flex; gap:8px; width:100%; }
+    .left-column { flex:1 1 0; min-width:0; max-width:520px }
+    .right-column { width:260px }
     .actions { display:flex; gap:8px; margin-top:12px }
     .actions button { flex:1 }
     /* Header styles moved to src/webview/header.html for reuse */
@@ -27,42 +32,42 @@
     </label>
   </div>
   <div class="use-current-workspace">
-  <div class="row">
-    <label for="projectName">Project name</label>
-    <input id="projectName" type="text" placeholder="Enter project name" style="flex:1; padding:8px" />
-  </div>
-  <div class="row">
-    <label for="targetDir">Save location (where SDK will be cloned)</label>
-    <div style="width:80%; gap:8px;">
-      <input id="targetDir" type="text" style="flex:1; padding:8px" placeholder="Select folder..." />
-      <button id="choose-dir" style="width:120px">Choose...</button>
+    <div class="row">
+      <div style="display:flex;align-items:flex-start;gap:20px;width:100%">
+        <div class="left-column" style="display:flex;flex-direction:column;">
+          <label for="projectName">Project name</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="projectName" type="text" placeholder="Enter project name" class="field-control" style="flex:1 1 0;" />
+          </div>
+        </div>
+        <div class="right-column" style="display:flex;flex-direction:column;">
+          <label for="model">Model</label>
+          <select id="model" class="field-control"><option value="">— none —</option></select>
+        </div>
+        <div class="right-column" style="display:flex;flex-direction:column;">
+            <label for="demo-projects">Demo Project</label>
+            <select id="demo-projects" class="keep-enabled" aria-label="Demo projects" style="width:220px;padding:8px;box-sizing:border-box"></select>
+        </div>
+      </div>
+    </div>
+    <div class="row">
+      <label for="targetDir">Save location (where SDK will be cloned)</label>
+      <div class="field-group" style="max-width:520px;">
+        <input id="targetDir" type="text" style="flex:1 1 0;padding:8px;box-sizing:border-box;max-width:320px" placeholder="Select folder..." />
+        <button id="choose-dir" style="width:120px">Choose...</button>
+      </div>
     </div>
   </div>
-</div>
-
-  <div class="row">
-    <label for="platform">Platform</label>
-    <select id="platform"></select>
-  </div>
-  <div class="row">
-    <label for="model">Model (optional)</label>
-    <select id="model"><option value="">— none —</option></select>
-  </div>
-  
-  <label for="demo-projects">Choose demo project:</label>
-  <select id="demo-projects" aria-label="Demo projects">
-    <!-- options will be injected by the extension -->
-  </select>
 
   <div class="row">
     <label for="sdkVersion">SDK version</label>
-    <select id="sdkVersion" style="width:80%; padding:8px">
+    <select id="sdkVersion" style="flex:1 1 0;padding:8px;box-sizing:border-box;max-width:320px">
       <option value="v1.0" selected>v1.0</option>
       <option value="v1.1" hidden>v1.1</option>
       <option value="v2.0" hidden>v2.0</option>
     </select>
   </div>
-  <div class="actions" style="width:80%;">
+  <div class="actions" style="max-width:520px;">
     <button id="create">Create Demo Project</button>
   </div>
 
@@ -80,12 +85,11 @@
         }
 
         const disabled = enabled;
-        localProjectContainer.style.opacity = disabled ? '0.55' : '1';
-        localProjectContainer.style.pointerEvents = disabled ? 'none' : 'auto';
-
         const controls = localProjectContainer.querySelectorAll('input, button, select, textarea');
         controls.forEach(control => {
+          if (control.classList && control.classList.contains('keep-enabled')) return;
           control.disabled = disabled;
+          control.style.opacity = disabled ? '0.55' : '1';
         });
       }
 
@@ -99,9 +103,7 @@
       // notify extension this demo webview is ready to receive platforms/models
       vscode.postMessage({ type: 'ready' });
 
-      document.getElementById('platform').addEventListener('change', (e) => {
-        vscode.postMessage({ type: 'platformChanged', value: e.target.value });
-      });
+      // platform selection removed; extension will provide models directly
 
       const chooseDirBtn = document.getElementById('choose-dir');
       const targetDirInput = document.getElementById('targetDir');
@@ -116,33 +118,25 @@
         const useCurrent = localProjectToggle ? localProjectToggle.checked : true;
         const projectNameInput = document.getElementById('projectName');
         const targetDirInput = document.getElementById('targetDir');
-        const platformSel = document.getElementById('platform');
         const modelSel = document.getElementById('model');
 
         const payload = { name: selected || 'demo-project' };
         if (!useCurrent) {
           payload['projectName'] = projectNameInput ? projectNameInput.value : '';
           payload['targetDir'] = targetDirInput ? targetDirInput.value : '';
-          payload['platform'] = platformSel ? platformSel.value : '';
           payload['model'] = modelSel ? modelSel.value : '';
         }
 
         if (window && window.acquireVsCodeApi) {
-          vscode.postMessage({ type: 'createDemo', payload });
-        }
+            console.log('new-project-demo: posting createDemo', payload);
+            vscode.postMessage({ type: 'createDemo', payload });
+          }
       });
 
       // accept messages from extension to populate UI
       window.addEventListener('message', event => {
         const msg = event.data;
-        if (msg.type === 'setPlatforms') {
-          const platformSel = document.getElementById('platform');
-          platformSel.innerHTML = '';
-          msg.platforms.forEach(p => {
-            const opt = document.createElement('option'); opt.value = p; opt.textContent = p; platformSel.appendChild(opt);
-          });
-          platformSel.dispatchEvent(new Event('change'));
-        }
+        // platform list not used in single-platform setup
 
         if (msg.type === 'setModels') {
           const modelSel = document.getElementById('model');

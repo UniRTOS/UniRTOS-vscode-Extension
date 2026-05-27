@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { chooseDirectoryAndSet, downloadAndCloneSdk } from './cloneSdk';
-import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder } from '../utils';
+import { platformFilePath, sendPlatforms, handlePlatformChanged, writeAppJsonToFolder, setupWebviewTheme } from '../utils';
 import { UNIRTOS_REPO } from '../constants';
 import { runBasicEnvChecks } from './checkView';
 import { injectHeaderIntoHtml } from './header';
@@ -58,6 +58,8 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
 
   panel.webview.html = html;
 
+  try { setupWebviewTheme(panel); } catch (e) { /* ignore if helper missing */ }
+
   // check if project is unirtos
   const basic = runBasicEnvChecks(context);
   panel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
@@ -90,9 +92,16 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   }
 
   panel.webview.onDidReceiveMessage(async (message) => {
+    try { console.log('newProjectDemo received message:', JSON.stringify(message)); } catch (e) {}
     if (!message || !message.type) return;
     if (message.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
+      // If there's only one platform, pre-send its models so the webview can populate `model` without a platform selector
+      try {
+        if (platformKeys.length === 1) {
+          handlePlatformChanged(platformKeys[0], platforms, panel.webview);
+        }
+      } catch (e) { /* ignore */ }
       // if we detected a default model in the workspace, send it so the webview can pre-select
       if (defaultModel) {
         try { panel.webview.postMessage({ type: 'setModelValue', value: defaultModel }); } catch (e) {}

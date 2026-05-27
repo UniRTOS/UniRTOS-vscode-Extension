@@ -43,6 +43,7 @@ export async function runBuildScript(workspaceRoot: string, context: vscode.Exte
 
   // Try to read selected device from app.json "model" property in workspace root
   let selectedDevice: string | undefined;
+  let version: string | undefined;
   try {
     const appJsonPath = path.join(workspaceRoot, 'app.json');
     if (fs.existsSync(appJsonPath)) {
@@ -51,6 +52,7 @@ export async function runBuildScript(workspaceRoot: string, context: vscode.Exte
       if (appJson && typeof appJson.model === 'string') {
         if (subKeys.includes(appJson.model)) {
           selectedDevice = appJson.model;
+          version = appJson.version || `${selectedDevice}_R01A01_BETA_OCPU_2026`;
         } else {
           vscode.window.showWarningMessage(`Device "${appJson.model}" from app.json not found in platform list.`);
         }
@@ -75,7 +77,7 @@ export async function runBuildScript(workspaceRoot: string, context: vscode.Exte
 
   // Ask user if they want to build the SDK for the selected device
   const buildChoice = await vscode.window.showInformationMessage(
-    `Would you like to build the SDK for ${selectedDevice} now?`,
+    `Would you like to build the SDK for ${selectedDevice} now?\n\nNote:\nTo update the version name, please edit app.json and set the "version" field.`,
     { modal: true },
     'Yes'
   );
@@ -92,12 +94,6 @@ export async function runBuildScript(workspaceRoot: string, context: vscode.Exte
   // 2. run buildlib_unirtos script
   const script = 'unirtos make';
   const isWin = process.platform === 'win32';
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const dateStr = `${year}${month}${day}`;
-  const version = `${selectedDevice}_${dateStr}`;
   const cmd = isWin ? `cmd.exe /c ${script} ${selectedDevice} ${version}` : `./${script} ${selectedDevice} ${version}`;
 
   // console.log('Running build command:', cmd, 'in workspace:', workspaceRoot);
