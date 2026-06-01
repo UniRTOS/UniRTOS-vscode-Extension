@@ -8,39 +8,15 @@
   </div>
   <div class="right"><a class="home-button" href="https://developer.quectel.com/en/" target="_blank" rel="noopener">Home</a></div>
 </header>
-<style>
-:root {
-  --header-bg: #f5f7fa;
-  --header-title: #0066cc;
-  --header-button-bg: #0066cc;
-  --header-button-color: #ffffff;
-  --text-color: #333333;
-}
-
-:root[data-theme="dark"] {
-  --header-bg: #1e1e1e;
-  --header-title: #9cdcfe;
-  --header-button-bg: #0e639c;
-  --header-button-color: #ffffff;
-  --text-color: #dddddd;
-}
-
-.top-header { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--header-bg); border-radius:6px; margin-bottom:18px }
-.top-header h1 { margin:0; font-size:18px; color:var(--header-title) }
-.top-header a.home-button { text-decoration:none; background:var(--header-button-bg); color:var(--header-button-color); padding:6px 10px; border-radius:4px }
-.left { flex: 0 0 auto; display:flex; align-items:center }
-.center { flex: 1 1 auto; display:flex; justify-content:center }
-.right { flex: 0 0 auto }
-#unirtos-project-status { font-size:13px; color:var(--text-color) }
-.status-yes { color: #0b7a2f }
-.status-no { color: #c0392b }
-
-#page-title { font-size:13px; color:var(--text-color); margin-right:12px }
-
-.top-header .logo { height:40px; width:auto; margin-right:8px }
-</style>
+<link rel="stylesheet" href="%%HEADER_CSS%%">
 
 <script>
+  /*
+  Colors:
+  Primary: #0052D9
+  Secondary: #767680
+  Cancel: #E11D48
+  */
   // Update header fields. Handle messages like
   // { type: 'setUniRTOSProject', value: true|false } and { type: 'setPageTitle', value: 'My Page' }
   window.addEventListener('message', event => {

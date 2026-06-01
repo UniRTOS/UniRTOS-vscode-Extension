@@ -1,0 +1,186 @@
+:root {
+  --header-bg: #f5f7fa;
+  --header-title: #0066cc;
+  --header-button-bg: #0052D9;
+  --header-button-color: #ffffff;
+  --text-color: #333333;
+}
+
+:root[data-theme="dark"] {
+  --header-bg: #1e1e1e;
+  --header-title: #9cdcfe;
+  --header-button-bg: #0052D9;
+  --header-button-color: #ffffff;
+  --text-color: #dddddd;
+}
+
+.top-header { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--header-bg); border-radius:6px; margin-bottom:18px }
+.top-header h1 { margin:0; font-size:18px; color:var(--header-title) }
+.top-header a.home-button { text-decoration:none; background:var(--header-button-bg); color:var(--header-button-color); padding:6px 10px; border-radius:4px }
+.left { flex: 0 0 auto; display:flex; align-items:center }
+.center { flex: 1 1 auto; display:flex; justify-content:center }
+.right { flex: 0 0 auto }
+#unirtos-project-status { font-size:13px; color:var(--text-color) }
+.status-yes { color: #0b7a2f }
+.status-no { color: #c0392b }
+
+#page-title { font-size:13px; color:var(--text-color); margin-right:12px }
+
+.top-header .logo { height:40px; width:auto; margin-right:8px }
+
+/* Styles moved from flash-firmware.html */
+.row { margin-bottom: 8px; }
+label { display:block; font-weight:600; margin-bottom:4px }
+
+.actions { display:flex; gap:8px; margin-top:12px }
+.actions button { flex:1 }
+
+.tab-panel{display:none;margin-top:12px}
+.tab-panel.active{display:block}
+
+.summary { display:flex;flex-direction:column;gap:12px }
+
+.summary-row { 
+  display: grid; 
+  grid-template-columns: 100px 1fr 120px; 
+  gap: 12px; 
+  align-items: center; 
+  margin-bottom: 12px;
+}
+
+.port-select, .file-summary { 
+  width: 100%; 
+  box-sizing: border-box; 
+  height: 36px;
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.file-summary[readonly] {
+  background: #fafafa;
+  border-color: #e6e6e6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.small-btn { 
+  width: 100%; 
+  box-sizing: border-box;
+  background: #555;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+  border: 0;
+  cursor: pointer; 
+  height: 36px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#flashBtn { 
+  background: #0052D9;
+  color: #fff;
+  width: auto; 
+  padding: 0 24px;
+  border: none;
+}
+#flashBtn:hover { filter:brightness(0.95) }
+
+.field-label { font-weight:600; }
+
+.notice { display:none;padding:8px 12px;border-radius:6px;background:#e6ffed;border:1px solid #b7f0c7;color:#064e16;margin-bottom:12px }
+.notice.error { background:#ffecec;border:1px solid #f5c2c2;color:#7a1a1a }
+
+.flash-actions { margin-top:16px; display: flex; }
+
+#cancel {
+  background-color: #E11D48;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  height: 36px;
+  border-radius: 6px;
+}
+#cancel:hover { filter: brightness(0.95); }
+
+#refreshPorts, #selectFileBtn {
+  background-color: #767680;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  height: 36px;
+  border-radius: 6px;
+  padding: 0 12px;
+}
+#refreshPorts:hover, #selectFileBtn:hover { filter: brightness(0.95); }
+
+h1 { color: #0066cc }
+
+/* Flashing page utilities */
+.content-max600 { max-width:600px; display:flex; flex-direction:column; gap:8px; }
+.ports-debug { white-space:pre-wrap; max-height:220px; overflow:auto; margin-top:8px; display:none; border:1px solid #eee; padding:8px; border-radius:4px; background:#fafafa }
+.actions.max-440 { max-width:440px; }
+
+/* Styles moved from new-project.html */
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial; padding: 12px; color: var(--text-color); }
+.row { margin-bottom: 8px; }
+label { display:block; font-weight:600; margin-bottom:4px }
+
+select, button { width:80%; padding:8px; box-sizing: border-box; }
+
+/* Continue button */
+#create {
+  background-color: var(--header-button-bg);
+  color: var(--header-button-color);
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+#create:hover { filter: brightness(0.95); }
+
+/* Demo and Choose buttons */
+#open-demo, #choose-dir {
+  background-color: #767680;
+  color: #ffffff;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+#open-demo:hover, #choose-dir:hover { filter: brightness(0.95); }
+
+/* Utility layout classes used by new-project.html */
+.flex { display:flex; }
+.flex-start { align-items:flex-start; }
+.gap-20 { gap:20px; }
+.full-width { width:100%; }
+.column { display:flex; flex-direction:column; }
+.col-flex { flex:1 1 0; min-width:0; max-width:520px; }
+.width-260 { width:260px; }
+.input-with-button { display:flex; gap:8px; align-items:center; }
+.input-field { flex:1 1 0; padding:8px; box-sizing:border-box; max-width:320px; }
+.btn-120 { width:120px; }
+.select-full { width:100%; padding:8px; box-sizing:border-box; }
+
+/* Styles moved from new-project-demo.html */
+.field-control { width:100%; padding:8px; box-sizing:border-box; }
+.field-group { display:flex; gap:8px; width:100%; }
+.left-column { flex:1 1 0; min-width:0; max-width:520px }
+.right-column { width:260px }
+.keep-enabled { }
+.checkbox-label { display:flex; align-items:center; gap:8px; font-weight:500; }
+.inline-relative { position:relative; display:inline-block; }
+.checkbox-input { width:auto; position:relative; z-index:1; }
+.select-220 { width:220px; padding:8px; box-sizing:border-box; }
+.max-520 { max-width:520px; }
+.w-80 { width:80%; }
+.actions.max-520 { max-width:520px; }
+

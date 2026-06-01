@@ -25,6 +25,20 @@ export function injectHeaderIntoHtml(html: string, panel: vscode.WebviewPanel, c
   try {
     const headerFile = path.join(context.extensionPath, 'src', 'webview', 'header.html');
     let headerHtml = fs.readFileSync(headerFile, 'utf8');
+    // Replace CSS placeholder with webview URI
+    try {
+      const cssFile = path.join(context.extensionPath, 'src', 'webview', 'common.css');
+      if (fs.existsSync(cssFile)) {
+        const cssUri = vscode.Uri.file(cssFile);
+        const asWebview = (panel.webview as any).asWebviewUri;
+        const cssUriObj = typeof asWebview === 'function' ? asWebview.call(panel.webview, cssUri) : cssUri;
+        headerHtml = headerHtml.replace('%%HEADER_CSS%%', cssUriObj ? cssUriObj.toString() : '');
+      } else {
+        headerHtml = headerHtml.replace('%%HEADER_CSS%%', '');
+      }
+    } catch (e) {
+      headerHtml = headerHtml.replace('%%HEADER_CSS%%', '');
+    }
     if (pageTitle != null) {
       try {
         headerHtml = headerHtml.replace('id="page-title-value">—</strong>', `id="page-title-value">${escapeHtml(String(pageTitle))}</strong>`);

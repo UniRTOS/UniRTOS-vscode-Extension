@@ -278,6 +278,11 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
       }
       return;
     }
+
+    if (msg.command === 'cancel') {
+      try { panel.dispose(); } catch (e) { /* ignore */ }
+      return;
+    }
   };
 }
 

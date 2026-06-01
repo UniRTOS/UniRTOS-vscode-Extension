@@ -92,7 +92,6 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   }
 
   panel.webview.onDidReceiveMessage(async (message) => {
-    try { console.log('newProjectDemo received message:', JSON.stringify(message)); } catch (e) {}
     if (!message || !message.type) return;
     if (message.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
@@ -111,6 +110,11 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
 
     if (message.type === 'chooseDir') {
       await chooseDirectoryAndSet(panel.webview, 'Choose folder', 'value');
+      return;
+    }
+
+    if (message.type === 'cancel') {
+      try { panel.dispose(); } catch (e) { /* ignore */ }
       return;
     }
 

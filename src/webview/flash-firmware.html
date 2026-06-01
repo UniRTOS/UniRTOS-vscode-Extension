@@ -4,94 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UniRTOS Flash Firmware</title>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial; padding: 12px; }
-    .row { margin-bottom: 8px; }
-    label { display:block; font-weight:600; margin-bottom:4px }
-    
-    .actions { display:flex; gap:8px; margin-top:12px }
-    .actions button { flex:1 }
-    
-    .tab-panel{display:none;margin-top:12px}
-    .tab-panel.active{display:block}
-    
-    .summary { display:flex;flex-direction:column;gap:12px }
-    
-    /* Grid layout with explicit matching column definitions */
-    .summary-row { 
-      display: grid; 
-      /* Label: 100px | Control: Fills remaining space uniformly | Buttons: Exact identical width */
-      grid-template-columns: 100px 1fr 120px; 
-      gap: 12px; 
-      align-items: center; 
-      margin-bottom: 12px;
-    }
-    
-    /* Select and Input are now perfectly identical in sizing and boxing */
-    .port-select, .file-summary { 
-      width: 100%; 
-      box-sizing: border-box; 
-      height: 36px;
-      padding: 6px 8px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #fff;
-      font-size: 14px;
-    }
-
-    .file-summary[readonly] {
-      background: #fafafa;
-      border-color: #e6e6e6;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-    
-    /* Action buttons share exact matching dimensions */
-    .small-btn { 
-      width: 100%; /* Spans the entire 120px grid column allotment */
-      box-sizing: border-box;
-      background: #555;
-      color: #fff;
-      border-radius: 6px;
-      font-size: 13px;
-      border: 0;
-      cursor: pointer; 
-      height: 36px;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    #flashBtn { 
-      background: #007acc;
-      color: #fff;
-      width: auto; 
-      padding: 0 24px;
-    }
-    #flashBtn:hover { filter:brightness(0.95) }
-    
-    .field-label { font-weight:600; }
-    
-    .notice { display:none;padding:8px 12px;border-radius:6px;background:#e6ffed;border:1px solid #b7f0c7;color:#064e16;margin-bottom:12px }
-    .notice.error { background:#ffecec;border:1px solid #f5c2c2;color:#7a1a1a }
-    
-    .flash-actions { margin-top:16px; display: flex; }
-    h1 { color: #0066cc }
-  </style>
 </head>
 <body>
   <div id="header-root"></div>
   <div id="flashNotice" class="notice">Flashing completed successfully.</div>
-  <div id="flashError" class="notice" style="display:none;padding:8px 12px;border-radius:6px;background:#ffecec;border:1px solid #f5c2c2;color:#7a1a1a;margin-bottom:12px">Flashing failed.</div>
+  <div id="flashError" class="notice error">Flashing failed.</div>
   <h1>Flash UniRTOS Firmware</h1>
 
-  <pre id="portsDebug" style="white-space:pre-wrap;max-height:220px;overflow:auto;margin-top:8px;display:none;border:1px solid #eee;padding:8px;border-radius:4px;background:#fafafa"></pre>
+  <pre id="portsDebug" class="ports-debug"></pre>
 
   <section id="tab3" class="tab-panel active">
     <div class="summary">
-      <div style="max-width:600px; display:flex; flex-direction:column; gap:8px">
+      <div class="content-max600">
         
         <div class="summary-row">
           <div class="field-label">COM port:</div>
@@ -111,7 +35,8 @@
     </div>
   </section>
 
-  <div class="flash-actions">
+  <div class="flash-actions actions max-440">
+    <button id="cancel" class="small-btn">Cancel</button>
     <button id="flashBtn" class="small-btn">Flash Firmware</button>
   </div>
 
@@ -184,6 +109,8 @@
     if (selectFileBtn) selectFileBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'pickFile' }); });
     const flashBtn = document.getElementById('flashBtn');
     if (flashBtn) flashBtn.addEventListener('click', () => { triggerFlash(); });
+    const cancelBtn = document.getElementById('cancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'cancel' }); });
     
     const portSelectEl = document.getElementById('portSelect');
     if(portSelectEl) {
