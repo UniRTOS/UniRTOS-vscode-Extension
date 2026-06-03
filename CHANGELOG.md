@@ -1,3 +1,7 @@
+## 1.0.5
+- .use QUI for colors and style
+- .add user guide for the extension
+
 ## 1.0.4
 - .add debug command with serial monitor
 - .Save version to app.json
