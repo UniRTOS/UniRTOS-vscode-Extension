@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; script-src 'unsafe-inline' vscode-resource:; style-src 'unsafe-inline' vscode-resource:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>UniRTOS Flash Firmware</title>
 </head>
@@ -35,8 +36,7 @@
     </div>
   </section>
 
-  <div class="flash-actions actions max-440">
-    <button id="cancel" class="small-btn">Cancel</button>
+  <div class="flash-actions actions max-220">
     <button id="flashBtn" class="small-btn">Flash Firmware</button>
   </div>
 
@@ -50,15 +50,89 @@
     let selectedPort = '';
     let selectedFile = '';
     let selectedPkg = '';
+    let preFlashCheck = false;
+    let preFlashTimeoutId = null;
+    let uniRTOSState = undefined; // undefined = unknown, true = is UniRTOS project, false = not
 
     function triggerFlash() {
+      // First, ensure the current workspace is a UniRTOS SDK project
+      const errEl = document.getElementById('flashError');
+      if (typeof uniRTOSState !== 'undefined' && uniRTOSState === false) {
+        if (errEl) {
+          errEl.textContent = 'Workspace is not a UniRTOS SDK project!';
+          errEl.style.display = 'block';
+          setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 6000);
+        }
+        return;
+      }
+      if (typeof uniRTOSState === 'undefined') {
+        // request status from extension and ask user to retry after it's resolved
+        try { if (vscode) vscode.postMessage({ command: 'requestProjectStatus' }); } catch (e) {}
+        if (errEl) {
+          errEl.textContent = 'Checking workspace type — please try again in a moment.';
+          errEl.style.display = 'block';
+          setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 4000);
+        }
+        return;
+      }
+      // Validate required inputs before asking the extension to flash
+      if (!selectedPort) {
+        if (errEl) {
+          errEl.textContent = 'Please select a COM port.';
+          errEl.style.display = 'block';
+          setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 5000);
+        }
+        return;
+      }
+      // Verify the selected port corresponds to a QDLoader device
+      try {
+        const portSel = document.getElementById('portSelect');
+        let selectedLabel = '';
+        if (portSel && portSel.options && portSel.selectedIndex >= 0) {
+          selectedLabel = portSel.options[portSel.selectedIndex].text || '';
+        }
+        if (selectedLabel && !/qdloader/i.test(selectedLabel)) {
+          if (errEl) {
+            errEl.textContent = 'Selected port is not QDLoader. Please select the QDLoader port.';
+            errEl.style.display = 'block';
+            setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 6000);
+          }
+          return;
+        }
+      } catch (e) {}
+      // Ensure a file has been selected
+      if (!selectedFile) {
+        if (errEl) {
+          errEl.textContent = 'Please select a file to flash.';
+          errEl.style.display = 'block';
+          setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 5000);
+        }
+        return;
+      }
+      // Before flashing, request fresh port list and verify QDLoader is present.
+      // The extension will respond with a 'ports' message which we handle below.
       if (vscode) {
-        vscode.postMessage({ command: 'flashFirmware', selectedPort: selectedPort, selectedFile: selectedFile });
+        preFlashCheck = true;
+        try { vscode.postMessage({ command: 'requestPorts', preFlashCheck: true }); } catch (e) {}
+        if (preFlashTimeoutId) clearTimeout(preFlashTimeoutId);
+        preFlashTimeoutId = setTimeout(() => {
+          preFlashCheck = false;
+          const err = document.getElementById('flashError');
+          if (err) {
+            err.textContent = 'qdloader port is avilable for 15 sec or less, please try again';
+            err.style.display = 'block';
+            setTimeout(() => { if (err) err.style.display = 'none'; }, 6000);
+          }
+        }, 15000);
       }
     }
 
     window.addEventListener('message', event => {
       const msg = event.data;
+      if (msg && msg.type === 'setUniRTOSProject') {
+        uniRTOSState = !!msg.value;
+        return;
+      }
       if (msg && msg.command === 'ports') {
         const select = document.getElementById('portSelect');
         if (!select) return;
@@ -66,12 +140,43 @@
         const ports = Array.isArray(msg.ports) ? msg.ports : [];
         if (ports.length === 0) {
           const opt = document.createElement('option'); opt.value = ''; opt.textContent = '(no ports found)'; select.appendChild(opt);
+          // If we were checking for QDLoader for a pending flash, show message
+          if (preFlashCheck) {
+            preFlashCheck = false;
+            if (preFlashTimeoutId) { clearTimeout(preFlashTimeoutId); preFlashTimeoutId = null; }
+            const err = document.getElementById('flashError');
+            if (err) {
+              err.textContent = 'qdloader port is avilable for 15 sec or less, please try again';
+              err.style.display = 'block';
+              setTimeout(() => { if (err) err.style.display = 'none'; }, 6000);
+            }
+          }
         } else {
           for (const p of ports) {
             const opt = document.createElement('option'); opt.value = p.value || p.label || ''; opt.textContent = p.label || p.value || p;
             select.appendChild(opt);
           }
           selectedPort = select.value || (select.options && select.options.length > 0 ? select.options[0].value : '');
+          // If this ports list was requested as part of a pre-flash check, look for QDLoader
+          if (preFlashCheck) {
+            preFlashCheck = false;
+            if (preFlashTimeoutId) { clearTimeout(preFlashTimeoutId); preFlashTimeoutId = null; }
+            try {
+              const qd = ports.find(p => (p.label || '').toLowerCase().includes('qdloader')) || ports.find(p => (p.value || '').toLowerCase().includes('qdloader'));
+              if (!qd) {
+                const err = document.getElementById('flashError');
+                if (err) {
+                  err.textContent = 'qdloader port is avilable for 15 sec or less, please try again';
+                  err.style.display = 'block';
+                  setTimeout(() => { if (err) err.style.display = 'none'; }, 6000);
+                }
+              } else {
+                // Found QDLoader — proceed with flash using that port
+                selectedPort = qd.value || qd.label || selectedPort;
+                if (vscode) vscode.postMessage({ command: 'flashFirmware', selectedPort: selectedPort, selectedFile: selectedFile });
+              }
+            } catch (e) {}
+          }
         }
       }
       else if (msg && msg.command === 'pickedFile') {
@@ -109,13 +214,13 @@
     if (selectFileBtn) selectFileBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'pickFile' }); });
     const flashBtn = document.getElementById('flashBtn');
     if (flashBtn) flashBtn.addEventListener('click', () => { triggerFlash(); });
-    const cancelBtn = document.getElementById('cancel');
-    if (cancelBtn) cancelBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'cancel' }); });
     
     const portSelectEl = document.getElementById('portSelect');
     if(portSelectEl) {
       portSelectEl.addEventListener('change', () => { selectedPort = portSelectEl.value; });
     }
+    // Signal to the extension that the webview finished loading
+    try { if (vscode) vscode.postMessage({ command: 'ready' }); } catch (e) {}
   </script>
 </body>
 </html>

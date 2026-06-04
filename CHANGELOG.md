@@ -1,3 +1,8 @@
+## 1.1.0
+- .improve design and user experience
+- .add some messages and errors check
+- .fix issue with theme light/dark
+
 ## 1.0.5
 - .use QUI for colors and style
 - .add user guide for the extension

@@ -32,7 +32,6 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
       const groups = [
         new CommandItem('Development', vscode.TreeItemCollapsibleState.Expanded, true),
         new CommandItem('Links', vscode.TreeItemCollapsibleState.Expanded, true),
-        // new CommandItem('Old', vscode.TreeItemCollapsibleState.Expanded, true),
       ];
       return Promise.resolve(groups);
     }
@@ -58,14 +57,6 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
         new CommandItem('Offical Website')
       ];
       return Promise.resolve(links);
-    }
-
-    if (element.label === 'Old') {
-      const old = [
-        new CommandItem('Guide - How to'),
-        new CommandItem('Check Requirements')
-      ];
-      return Promise.resolve(old);
     }
 
     return Promise.resolve([]);

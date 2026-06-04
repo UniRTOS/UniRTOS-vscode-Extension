@@ -33,6 +33,21 @@ async function handleFlashFirmware(msg: any, webview: vscode.Webview, context: v
   // run FlashToolCLI with the selected cfg file and stream output to the channel
   try {
     output.show(true);
+    // Ensure the current workspace is a UniRTOS SDK project before flashing
+    try {
+      const basic = runBasicEnvChecks(context);
+      if (!basic || !basic.configPassed) {
+        const reason = basic && basic.reason ? String(basic.reason) : 'Workspace is not a UniRTOS SDK project!';
+        output.appendLine('[flashFirmware] Aborting: ' + reason);
+        try { webview.postMessage({ command: 'flashComplete', success: false, reason }); } catch {}
+        try { vscode.window.showErrorMessage(reason); } catch {}
+        return;
+      }
+    } catch (e) {
+      output.appendLine('[flashFirmware] workspace check failed: ' + String(e));
+      try { webview.postMessage({ command: 'flashComplete', success: false, reason: 'Workspace check failed' }); } catch {}
+      return;
+    }
     const exe = path.join(context.extensionPath, 'src', 'data', 'Eigen_718', 'FlashToolCLI.exe');
     const cfg = msg && msg.selectedFile ? String(msg.selectedFile) : '';
     const port = msg && msg.selectedPort ? String(msg.selectedPort) : '';
@@ -210,6 +225,16 @@ function createWebviewMessageHandler(panel: vscode.WebviewPanel, context: vscode
       return;
     }
 
+    if (msg.command === 'requestProjectStatus') {
+      try {
+        const basic = runBasicEnvChecks(context);
+        webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
+      } catch (e) {
+        webview.postMessage({ type: 'setUniRTOSProject', value: false });
+      }
+      return;
+    }
+
     if (msg.command === 'pickFile') {
       try {
         const defaultUri = (vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0)
@@ -290,6 +315,7 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
   // Use 1 tab only, not multiple ones
   if (flashFirmwarePanel) {
     flashFirmwarePanel.reveal(vscode.ViewColumn.One);
+    try { setupWebviewTheme(flashFirmwarePanel); } catch (e) {}
     return;
   }
 
@@ -346,6 +372,19 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
   // check if project is unirtos
   const basic = runBasicEnvChecks(context);
   panel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
+
+  // If the webview signals it's ready, resend theme and status to ensure styling is correct
+  panel.webview.onDidReceiveMessage((msg) => {
+    try {
+      if (msg && msg.command === 'ready') {
+        try { setupWebviewTheme(panel); } catch (e) {}
+        try {
+          const basicNow = runBasicEnvChecks(context);
+          panel.webview.postMessage({ type: 'setUniRTOSProject', value: basicNow.configPassed });
+        } catch (e) {}
+      }
+    } catch (e) {}
+  });
 
   // Try to auto-detect a quec_download_usb.ini under qos_build/release/<firmware>/ and prefill the file selector
   try {

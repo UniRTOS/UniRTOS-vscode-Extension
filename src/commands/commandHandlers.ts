@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
 import { CommandItem } from '../views/commandsView';
-import { showGuide } from './guideView';
-import { showCheckRequirements } from './checkView';
 import { handleNewProject } from './newProject';
 import { showNewProjectDemo } from './newProjectDemo';
 import { showFlashFirmware } from './flashFirmware';
@@ -31,12 +29,6 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
       // route based on primary selection
       const cmd = labelsArr[0] ?? '';
       switch (cmd) {
-        case 'Guide - How to':
-          showGuide(context);
-          return;
-        case 'Check Requirements':
-          showCheckRequirements(context);
-          return;
         case 'Build':
           await runBuildScript(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '', context);
           return;

@@ -30,6 +30,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   if (newProjectPanel) {
     newProjectPanel.reveal(vscode.ViewColumn.One);
     try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed }); } catch (e) {}
+    try { setupWebviewTheme(newProjectPanel); } catch (e) {}
     return true;
   }
 
@@ -72,6 +73,8 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
           handlePlatformChanged(platformKeys[0], platforms, panel.webview);
         }
       } catch (e) { /* ignore */ }
+      // Ensure theme is applied when the webview is ready
+      try { setupWebviewTheme(panel); } catch (e) { /* ignore */ }
       return;
     }
 

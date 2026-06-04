@@ -16,6 +16,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
     newProjectDemoPanel.reveal(vscode.ViewColumn.One);
     const basicExisting = runBasicEnvChecks(context);
     try { newProjectDemoPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basicExisting.configPassed }); } catch (e) {}
+    try { setupWebviewTheme(newProjectDemoPanel); } catch (e) {}
     return;
   }
 
@@ -105,6 +106,8 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
       if (defaultModel) {
         try { panel.webview.postMessage({ type: 'setModelValue', value: defaultModel }); } catch (e) {}
       }
+      // Ensure theme is applied when webview is ready
+      try { setupWebviewTheme(panel); } catch (e) { /* ignore */ }
       return;
     }
 

@@ -105,7 +105,7 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
     }
   } catch (e) {
     // Ask the user if they want to download the toolchain
-    vscode.window.showInformationMessage('UniRTOS toolchain tool not found. Do you want to install the UniRTOS toolchain?', 'Yes', 'No')
+    vscode.window.showInformationMessage(`UniRTOS toolchain tool not found. Please check extension README for the correct setup. Do you want to download the UniRTOS toolchain?`, 'Yes', 'No')
       .then(answer => {
         if (answer === 'Yes') {
           downloadUnirtos(context).catch(err => {
@@ -114,7 +114,7 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
         }
       });
 
-    projectConfigPassed = { configPassed: false, reason: 'UniRTOS toolchain tool not found please check our site!' };
+    projectConfigPassed = { configPassed: false, reason: 'UniRTOS toolchain tool not found please check extension README for the correct setup!' };
     return projectConfigPassed;
   }
 

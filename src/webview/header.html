@@ -11,44 +11,36 @@
 <link rel="stylesheet" href="%%HEADER_CSS%%">
 
 <script>
-  /*
-  Colors:
-  Primary: #0052D9
-  Secondary: #767680
-  Cancel: #E11D48
-  */
-  // Update header fields. Handle messages like
-  // { type: 'setUniRTOSProject', value: true|false } and { type: 'setPageTitle', value: 'My Page' }
   window.addEventListener('message', event => {
     try {
       const msg = event.data;
       if (!msg || !msg.type) return;
-      if (msg.type === 'setUniRTOSProject') {
-        const val = !!msg.value;
-        const el = document.getElementById('unirtos-project-value');
-        if (el) {
-          el.textContent = val ? 'Yes' : 'No';
-          el.className = val ? 'status-yes' : 'status-no';
+      switch (msg.type) {
+        case 'setUniRTOSProject': {
+          const val = !!msg.value;
+          const el = document.getElementById('unirtos-project-value');
+          if (el) {
+            el.textContent = val ? 'Yes' : 'No';
+            el.className = val ? 'status-yes' : 'status-no';
+          }
+          break;
         }
-      } else if (msg.type === 'setPageTitle') {
-        const title = msg.value == null ? '' : String(msg.value);
-        const el = document.getElementById('page-title-value');
-        if (el) el.textContent = title || '—';
+        case 'setPageTitle': {
+          const title = msg.value == null ? '' : String(msg.value);
+          const el = document.getElementById('page-title-value');
+          if (el) el.textContent = title || '—';
+          break;
+        }
+        case 'theme': {
+          const theme = msg.theme === 'light' ? 'light' : 'dark';
+          try { document.documentElement.setAttribute('data-theme', theme); } catch (e) {}
+          break;
+        }
+        default:
+          break;
       }
     } catch (e) {
       console.warn('header: failed to handle message', e);
-    }
-  });
-
-  // Handle theme messages from the extension. Expects { type: 'theme', theme: 'light'|'dark' }
-  window.addEventListener('message', event => {
-    try {
-      const msg = event.data;
-      if (!msg || msg.type !== 'theme') return;
-      const theme = msg.theme === 'light' ? 'light' : 'dark';
-      try { document.documentElement.setAttribute('data-theme', theme); } catch (e) {}
-    } catch (e) {
-      console.warn('header: failed to handle theme message', e);
     }
   });
 </script>

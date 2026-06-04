@@ -5,27 +5,11 @@ UniRTOS is a unified embedded development kit developed by Quectel for its full 
 
 ## Features
 
-- **Extension Overview**
-	- Adds a UniRTOS icon to the activity bar with a Commands view for quick access to all major workflows.
-
-- **Create New Project**
-	- Launch a guided wizard to create a new UniRTOS project from scratch.
-	- Choose platform, model, SDK version, and target directory.
-
-- **Create Demo Project**
-	- Instantly set up a demo project from a curated list of examples.
-	- Demo projects are pre-configured for quick evaluation and prototyping.
-
-- **Build SDK**
-	- Build your UniRTOS SDK project directly from the extension.
-	- View build output and errors in the integrated terminal.
-
-- **Flash Firmware to Module**
-	- Flash the compiled firmware to your target module with a single click.
-	- Supports multiple connection types and auto-detects connected devices.
-
-- **More Features Coming Soon**
-	- Additional project templates, advanced debugging, and device monitoring are planned for future releases.
+- 🎯 **Create New Project**: Clone and create a new UniRTOS project.
+- 🏛️ **Create Demo Project**: Choose a demo project and add to your current unirto proejct, or start from scratch.
+- ⛩️ **Build SDK**: Build SDK from your unirtos project.
+- 📸 **Flash Firmware to Module**: Flash your UniRTOS firmware to the module.
+- 📜 **Requirements**: Follow the steps, to prepare your machine to build UniRTOS project.
 
 # How to use
 
