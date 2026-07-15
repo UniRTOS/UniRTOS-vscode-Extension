@@ -19,20 +19,22 @@
   </div>
   <div class="use-current-workspace">
     <div class="row">
-      <div class="flex flex-start gap-20 full-width">
+      <div class="column gap-20 full-width">
         <div class="left-column column">
           <label for="projectName">Project name</label>
           <div class="input-with-button">
             <input id="projectName" type="text" placeholder="Enter project name" class="input-field" />
           </div>
         </div>
-        <div class="right-column column">
-          <label for="model">Model</label>
-          <select id="model" class="field-control"><option value="">— none —</option></select>
-        </div>
-        <div class="right-column column">
+        <div class="right-group flex gap-12 max-440">
+          <div class="right-column column">
+            <label for="model">Model</label>
+            <select id="model" class="field-control select-214"><option value="">— none —</option></select>
+          </div>
+          <div class="right-column column">
             <label for="demo-projects">Demo Project</label>
-            <select id="demo-projects" class="keep-enabled select-220" aria-label="Demo projects"></select>
+            <select id="demo-projects" class="keep-enabled select-214" aria-label="Demo projects"></select>
+          </div>
         </div>
       </div>
     </div>

@@ -33,7 +33,32 @@
         }
         case 'theme': {
           const theme = msg.theme === 'light' ? 'light' : 'dark';
-          try { document.documentElement.setAttribute('data-theme', theme); } catch (e) {}
+          try {
+            document.documentElement.setAttribute('data-theme', theme);
+            // Force a light, grey header when VS Code is in dark theme
+            try {
+              const headerEl = document.querySelector('.top-header');
+              const titleEl = headerEl ? headerEl.querySelector('h1') : null;
+              const pageTitleEl = document.getElementById('page-title');
+              const cs = getComputedStyle(document.documentElement);
+                if (theme === 'dark') {
+                const lightGrey = '#8c8c8c';
+                const titleColor = cs.getPropertyValue('--header-title')?.trim() || '#0066cc';
+                const pageTitleColor = cs.getPropertyValue('--text-color')?.trim() || '#333333';
+                if (headerEl) headerEl.style.backgroundColor = lightGrey;
+                if (titleEl) titleEl.style.color = titleColor;
+                if (pageTitleEl) pageTitleEl.style.color = pageTitleColor;
+              } else {
+                // light theme: use defined CSS variables
+                const headerBg = cs.getPropertyValue('--header-bg')?.trim() || '';
+                const titleColor = cs.getPropertyValue('--header-title')?.trim() || '';
+                const pageTitleColor = cs.getPropertyValue('--text-color')?.trim() || '';
+                if (headerEl) headerEl.style.backgroundColor = headerBg || '';
+                if (titleEl && titleColor) titleEl.style.color = titleColor;
+                if (pageTitleEl && pageTitleColor) pageTitleEl.style.color = pageTitleColor;
+              }
+            } catch (e) {}
+          } catch (e) {}
           break;
         }
         default:

@@ -140,6 +140,8 @@ h1 { color: #0066cc }
 /* Flashing page utilities */
 .content-max600 { max-width:600px; display:flex; flex-direction:column; gap:8px; }
 .ports-debug { white-space:pre-wrap; max-height:220px; overflow:auto; margin-top:8px; display:none; border:1px solid #eee; padding:8px; border-radius:4px; background:#fafafa }
+.max-440 { max-width:440px; }
+.max-220 { max-width:220px; }
 .actions.max-440 { max-width:440px; }
 .actions.max-220 { max-width:220px; }
 
@@ -194,5 +196,5 @@ select, button { width:80%; padding:8px; box-sizing: border-box; }
 .checkbox-label { display:flex; align-items:center; gap:8px; font-weight:500; }
 .inline-relative { position:relative; display:inline-block; }
 .checkbox-input { width:auto; position:relative; z-index:1; }
-.select-220 { width:220px; padding:8px; box-sizing:border-box; }
+.select-214 { width:214px; padding:8px; box-sizing:border-box; }
 .w-80 { width:80%; }

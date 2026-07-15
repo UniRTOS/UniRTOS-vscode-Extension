@@ -1,9 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as https from 'https';
-import * as os from 'os';
 import { execSync } from 'child_process';
+import { downloadUnirtos } from './toolchainDownload';
 
 export let projectConfigPassed = { configPassed: false, reason: 'Test not run yet' };
 
@@ -105,12 +104,14 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
     }
   } catch (e) {
     // Ask the user if they want to download the toolchain
-    vscode.window.showInformationMessage(`UniRTOS toolchain tool not found. Please check extension README for the correct setup. Do you want to download the UniRTOS toolchain?`, 'Yes', 'No')
+    vscode.window.showInformationMessage(`Do you want to download the UniRTOS toolchain?`, 'Yes', 'No')
       .then(answer => {
         if (answer === 'Yes') {
           downloadUnirtos(context).catch(err => {
             vscode.window.showErrorMessage('Failed to download UniRTOS toolchain: ' + String(err));
           });
+        } else {
+          // User chose 'No' or dismissed the dialog: do not download.
         }
       });
 
@@ -126,129 +127,4 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
 
   projectConfigPassed = { configPassed: true, reason: 'All checks passed' };
   return projectConfigPassed;
-}
-
-async function downloadUnirtos(context: vscode.ExtensionContext): Promise<void> {
-  const url = 'https://www.quectel.com.cn/wp-content/uploads/2026/04/unirtos-toolchain_1.0.3.zip';
-  const defaultDir = path.join(os.tmpdir(), 'unirtos-downloads');
-
-  let targetDir = defaultDir;
-  try {
-    const pick = await vscode.window.showOpenDialog({
-      defaultUri: vscode.Uri.file(defaultDir),
-      canSelectFiles: false,
-      canSelectFolders: true,
-      openLabel: 'Select download folder (Cancel to use temp)',
-      canSelectMany: false
-    });
-    if (pick && pick.length > 0) {
-      targetDir = pick[0].fsPath;
-    }
-  } catch (e) {
-    // ignore and fall back to defaultDir
-  }
-
-  try {
-    fs.mkdirSync(targetDir, { recursive: true });
-  } catch (e) {
-    // ignore
-  }
-  const dest = path.join(targetDir, 'unirtos-toolchain_1.0.3.zip');
-
-  await vscode.window.withProgress({
-    location: vscode.ProgressLocation.Notification,
-    title: 'Downloading UniRTOS toolchain',
-    cancellable: true
-  }, (progress, token) => {
-    return new Promise<void>((resolve, reject) => {
-      const req = https.get(url, (res) => {
-        if ((res.statusCode || 0) >= 400) {
-          reject(new Error('Download failed with status ' + res.statusCode));
-          return;
-        }
-        const total = parseInt(String(res.headers['content-length'] || '0'), 10) || 0;
-        let received = 0;
-        const fileStream = fs.createWriteStream(dest);
-
-        token.onCancellationRequested(() => {
-          try { req.destroy(); } catch (e) {}
-          try { fileStream.close(); } catch (e) {}
-          try { fs.unlinkSync(dest); } catch (e) {}
-          reject(new Error('Download cancelled'));
-        });
-
-        res.on('data', (chunk: Buffer) => {
-          received += chunk.length;
-          if (total) {
-            const inc = (chunk.length / total) * 100;
-            progress.report({ increment: inc });
-          }
-        });
-
-        res.pipe(fileStream);
-
-        fileStream.on('finish', () => {
-          fileStream.close(() => {
-            vscode.window.showInformationMessage('Please install the downloaded UniRTOS toolchain and try again. From: ' + dest);
-            resolve();
-          });
-        });
-
-        fileStream.on('error', (err) => {
-          reject(err);
-        });
-      });
-
-      req.on('error', (err) => {
-        reject(err);
-      });
-    });
-  });
-}
-
-export function showCheckRequirements(context: vscode.ExtensionContext) {
-  const panel = vscode.window.createWebviewPanel(
-    'unirtosCheckRequirements',
-    'UniRTOS — Check Requirements',
-    vscode.ViewColumn.One,
-    {
-      enableScripts: true,
-      localResourceRoots: [vscode.Uri.file(context.extensionPath)]
-    }
-  );
-
-  const file = path.join(context.extensionPath, 'src', 'webview', 'check-requirements.html');
-  let html = '<p>Check page not found</p>';
-  try {
-    html = fs.readFileSync(file, 'utf8');
-  } catch (e) {
-    console.error('Failed to read check-requirements.html', e);
-  }
-
-  // add header file
-  try {
-    const headerFile = path.join(context.extensionPath, 'src', 'webview', 'header.html');
-    const headerHtml = fs.readFileSync(headerFile, 'utf8');
-    html = html.replace('<div id="header-root"></div>', headerHtml);
-  } catch (e) {
-    console.warn('Header fragment not injected:', e);
-  }
-
-  // Inject icon path into header placeholder using webview URI
-  try {
-    const iconFile = path.join(context.extensionPath, 'images', 'icon.png');
-    if (fs.existsSync(iconFile)) {
-      const uri = vscode.Uri.file(iconFile);
-      const asWebview = (panel.webview as any).asWebviewUri;
-      const iconUriObj = typeof asWebview === 'function' ? asWebview.call(panel.webview, uri) : uri;
-      html = html.replace('%%UNIRTOS_ICON%%', iconUriObj ? iconUriObj.toString() : '');
-    } else {
-      html = html.replace('%%UNIRTOS_ICON%%', '');
-    }
-  } catch (e) {
-    html = html.replace('%%UNIRTOS_ICON%%', '');
-  }
-
-  panel.webview.html = html;
-  projectConfigPassed = runBasicEnvChecks(context);
 }
