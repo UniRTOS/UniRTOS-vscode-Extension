@@ -20,12 +20,6 @@
   <div class="use-current-workspace">
     <div class="row">
       <div class="column gap-20 full-width">
-        <div class="left-column column">
-          <label for="projectName">Project name</label>
-          <div class="input-with-button">
-            <input id="projectName" type="text" placeholder="Enter project name" class="input-field" />
-          </div>
-        </div>
         <div class="right-group flex gap-12 max-440">
           <div class="right-column column">
             <label for="model">Model</label>
@@ -50,9 +44,7 @@
   <div class="row">
     <label for="sdkVersion">SDK version</label>
     <select id="sdkVersion" class="input-field">
-      <option value="v1.0" selected>v1.0</option>
-      <option value="v1.1" hidden>v1.1</option>
-      <option value="v2.0" hidden>v2.0</option>
+      <option value="">— Select a demo project —</option>
     </select>
   </div>
   <div class="actions max-440">
@@ -112,13 +104,15 @@
       document.getElementById('create').addEventListener('click', () => {
         const selected = select ? select.value : null;
         const useCurrent = localProjectToggle ? localProjectToggle.checked : true;
-        const projectNameInput = document.getElementById('projectName');
         const targetDirInput = document.getElementById('targetDir');
         const modelSel = document.getElementById('model');
+        const versionSel = document.getElementById('sdkVersion');
 
         const payload = { name: selected || 'demo-project' };
+        if (versionSel && versionSel.value) {
+          payload['version'] = versionSel.value;
+        }
         if (!useCurrent) {
-          payload['projectName'] = projectNameInput ? projectNameInput.value : '';
           payload['targetDir'] = targetDirInput ? targetDirInput.value : '';
           payload['model'] = modelSel ? modelSel.value : '';
         }
@@ -170,6 +164,8 @@
       // If the extension injected `window.__demoProjects` before script ran, populate now
       try {
         const projects = window.__demoProjects || [];
+        const versionSelect = document.getElementById('sdkVersion');
+        
         if (select && Array.isArray(projects)) {
           projects.forEach(p => {
             const opt = document.createElement('option');
@@ -177,6 +173,35 @@
             opt.textContent = p.name || p;
             select.appendChild(opt);
           });
+
+          // Handle demo project selection to update versions
+          select.addEventListener('change', (e) => {
+            const selectedId = e.target.value;
+            const selectedProject = projects.find(p => (p.id || p.name || p) === selectedId);
+            
+            if (selectedProject && versionSelect) {
+              // Clear existing options except first
+              while (versionSelect.options.length > 0) {
+                versionSelect.remove(0);
+              }
+              
+              // Populate with versions from selected project
+              const versions = selectedProject.versions || ['1.0.0'];
+              versions.forEach((v, idx) => {
+                const opt = document.createElement('option');
+                opt.value = v;
+                opt.textContent = v;
+                if (idx === 0) opt.selected = true;
+                versionSelect.appendChild(opt);
+              });
+            }
+          });
+
+          // Trigger change event on first project to populate versions
+          if (select.options.length > 1) {
+            select.selectedIndex = 1;
+            select.dispatchEvent(new Event('change'));
+          }
         }
       } catch (e) {
         // ignore

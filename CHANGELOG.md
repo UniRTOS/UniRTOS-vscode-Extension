@@ -1,3 +1,9 @@
+## 1.1.1
+- .implment unirtos-cli functions with the extension
+- .download and install unirtos toolchain
+- .improve design and user experience
+- .add some messages and errors check
+
 ## 1.1.0
 - .improve design and user experience
 - .add some messages and errors check

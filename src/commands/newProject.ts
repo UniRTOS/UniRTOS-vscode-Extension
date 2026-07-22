@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { downloadAndCloneSdk, chooseDirectoryAndSet } from './cloneSdk';
+import { chooseDirectoryAndSet } from './cloneSdk';
+import { runUnirtosCli, ensureVenv } from './pythonCli';
 import { showNewProjectDemo } from './newProjectDemo';
 import { platformFilePath, sendPlatforms, handlePlatformChanged, setupWebviewTheme } from '../utils';
 import { injectHeaderIntoHtml } from './header';
 import * as fs from 'fs';
 import { runBasicEnvChecks } from './checkView';
-import { UNIRTOS_REPO } from '../constants';
 
 let newProjectPanel: vscode.WebviewPanel | undefined;
 
@@ -24,7 +24,11 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     return true;
   }
 
-  const basic = runBasicEnvChecks(context);
+  const basic = runBasicEnvChecks(context, true);
+  if (!basic.configPassed) {
+    vscode.window.showErrorMessage((basic.reason || 'unknown') + ' Environment checks failed.');
+    return false;
+  }
 
   // Use 1 tab only, not multiple ones
   if (newProjectPanel) {
@@ -107,7 +111,21 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
       const pickedProjectName = msg.projectName as string | undefined;
       const pickedModel = msg.model as string | undefined;
 
-      const dest = await downloadAndCloneSdk(UNIRTOS_REPO, pickedTargetDir, pickedProjectName, pickedModel);
+      let dest: string | undefined;
+      try {
+        if (pickedProjectName && pickedTargetDir) {
+          ensureVenv();
+          try {
+            runUnirtosCli(['new', pickedProjectName, '-d', pickedTargetDir]);
+            dest = path.join(pickedTargetDir, pickedProjectName);
+          } catch (cliErr) {
+            console.warn('unirtos_cli failed, falling back to clone:', cliErr);
+          }
+        }
+      } catch (e) {
+        console.warn('Error invoking unirtos_cli:', e);
+      }
+
       panel.dispose();
       if (dest) {
         try {

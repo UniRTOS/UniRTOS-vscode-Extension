@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CommandsViewProvider, CommandItem } from './views/commandsView';
+import { CommandsViewProvider } from './views/commandsView';
 import { registerCommandHandlers } from './commands/commandHandlers';
 
 export function activate(context: vscode.ExtensionContext) {

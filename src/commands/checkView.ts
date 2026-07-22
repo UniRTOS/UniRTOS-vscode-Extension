@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { downloadUnirtos } from './toolchainDownload';
+import { checkUnirtosCli } from './pythonCli';
+import { CONFIG_FILE } from '../constants';
 
 export let projectConfigPassed = { configPassed: false, reason: 'Test not run yet' };
 
@@ -14,18 +16,18 @@ function checkWorkspaceForSdk(context: vscode.ExtensionContext): boolean {
     }
 
     const wf = folders[0].uri.fsPath;
-    // check for build.sh
+    // check for CONFIG_FILE
     let hasBatch = false;
     try {
       // Check top-level first
-      hasBatch = fs.existsSync(path.join(wf, 'build.sh'));
+      hasBatch = fs.existsSync(path.join(wf, CONFIG_FILE));
       // If not found at top-level, check one-level deep subfolders
       if (!hasBatch) {
         try {
           const entries = fs.readdirSync(wf, { withFileTypes: true });
           for (const e of entries) {
             if (e.isDirectory()) {
-              const candidate = path.join(wf, e.name, 'build.sh');
+              const candidate = path.join(wf, e.name, CONFIG_FILE);
               if (fs.existsSync(candidate)) {
                 hasBatch = true;
                 break;
@@ -78,17 +80,21 @@ function checkPython3(): boolean {
  * Run basic environment check: git, python, and unirtos tool.
  * return result with reason
  */
-export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPassed: boolean, reason: string } {
+export function runBasicEnvChecks(context: vscode.ExtensionContext, skipWorkspaceCheck: boolean = false): { configPassed: boolean, reason: string } {
   if (projectConfigPassed.configPassed) {
     return { configPassed: true, reason: 'All checks passed' };
   }
 
-  const workspaceOk = checkWorkspaceForSdk(context);
-  if (!workspaceOk) {
-    projectConfigPassed = { configPassed: false, reason: 'Workspace is not a UniRTOS SDK project!' };
-    return projectConfigPassed;
+  // check 1, workspace
+  if (!skipWorkspaceCheck) {
+    const workspaceOk = checkWorkspaceForSdk(context);
+    if (!workspaceOk) {
+      projectConfigPassed = { configPassed: false, reason: 'Workspace is not a UniRTOS SDK project!' };
+      return projectConfigPassed;
+    }
   }
 
+  // check 2, git
   try {
     execSync('git --version').toString().trim();
   } catch (e) {
@@ -96,6 +102,7 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
     return projectConfigPassed;
   }
 
+  // check 3, unirtos toolchain
   try {
     try {
       execSync('unirtos.exe --version', { stdio: 'pipe' }).toString().trim();
@@ -119,11 +126,35 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext): { configPas
     return projectConfigPassed;
   }
 
-  const pythonOk = checkPython3(); // 3. python check
+  // check 4, python
+  const pythonOk = checkPython3();
   if (!pythonOk) {
     projectConfigPassed = { configPassed: false, reason: 'Python 3 not found!' };
     return projectConfigPassed;
   }
+
+  // check 5, venv
+  try {
+    const venvOk = checkUnirtosCli(context);
+    if (!venvOk) {
+      projectConfigPassed = { configPassed: false, reason: 'Failed to create or initialize venv' };
+      return projectConfigPassed;
+    }
+  } catch (e) {
+    projectConfigPassed = { configPassed: false, reason: 'Venv setup error: ' + String(e) };
+    return projectConfigPassed;
+  }
+
+  // // check 6, UniRTOS CLI module
+  // try {
+  //   const pyCliOk = checkUnirtosCli(context);
+  //   if (!pyCliOk) {
+  //     projectConfigPassed = { configPassed: false, reason: 'UniRTOS CLI not found;' };
+  //     return projectConfigPassed;
+  //   }
+  // } catch (e) {
+  //   // ignore unexpected errors from the Python CLI check and continue with other checks
+  // }
 
   projectConfigPassed = { configPassed: true, reason: 'All checks passed' };
   return projectConfigPassed;
