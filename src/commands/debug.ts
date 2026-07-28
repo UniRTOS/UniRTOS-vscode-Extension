@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+// used for debug button
 export async function openSerialMonitor(context: vscode.ExtensionContext) {
   try {
     await vscode.commands.executeCommand('vscode-serial-monitor.monitor0.focus');

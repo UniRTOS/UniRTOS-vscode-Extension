@@ -1,3 +1,8 @@
+## 1.1.2
+- .Update readme + requirments
+- .Support flashing with AT port
+- .Save module and version to env file
+
 ## 1.1.1
 - .implment unirtos-cli functions with the extension
 - .download and install unirtos toolchain

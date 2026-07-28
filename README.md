@@ -118,12 +118,8 @@ Or you can find config file manually: Find quec_download_usb.ini or at_command.h
 <summary>✔️ UniRTOS Requirements</summary>
 
 ## UniRTOS Requirements
-- unirtos-toolchain download link：https://www.quectel.com.cn/wp-content/uploads/2026/04/unirtos-toolchain_1.0.3.zip
-  - download and install unirtos toolchain and add unirtos bin folder to Environment Variables (e.g. C:\unirtos-toolchain\bin)
-  <p>
-  <img src="https://raw.githubusercontent.com/QuecPython/vscode-extension-qpycom-issues/refs/heads/main/images/unirtos/req-1.png" alt="Requirements">
-</p>
-
+- Quecte Driver download link：https://developer.quectel.com/doc/files/Quectel_Windows_USB_Driver_Y.zip
+- unirtos-toolchain download link：https://www.quectel.com.cn/wp-content/uploads/2026/04/unirtos-toolchain.zip
 - git
 - python
 

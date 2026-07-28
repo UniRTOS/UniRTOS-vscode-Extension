@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
-import { writeAppJsonToFolder } from '../utils';
+import { writeConfigFileToFolder } from '../utils';
 
 export async function chooseDirectoryAndSet(webview: vscode.Webview, openLabel = 'Choose folder', responseField: 'path' | 'value' = 'path') {
   try {
@@ -143,7 +143,7 @@ export async function downloadAndCloneSdk(sdkUrl: string, targetDir?: string, pr
     appManifest.model = model.trim();
   }
 
-  const createAppFile = writeAppJsonToFolder(dest, appManifest);
+  const createAppFile = writeConfigFileToFolder(dest, appManifest);
   if (!createAppFile) {
     vscode.window.showWarningMessage('Failed to write app config file.');
     return null;

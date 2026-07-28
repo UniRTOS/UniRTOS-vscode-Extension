@@ -20,8 +20,8 @@
           </div>
         </div>
         <div class="column width-260">
-          <label for="model">Model</label>
-          <select id="model" class="select-full"></select>
+          <label for="module">module</label>
+          <select id="module" class="select-full"></select>
         </div>
       </div>
   </div>
@@ -65,13 +65,13 @@
     });
 
     document.getElementById('create').addEventListener('click', () => {
-      const model = document.getElementById('model').value;
+      const module = document.getElementById('module').value;
       const projectName = document.getElementById('projectName').value.trim();
       const sdkVersion = document.getElementById('sdkVersion').value;
       const targetDir = document.getElementById('targetDir').value;
 
       const missing = [];
-      if (!model) missing.push('model');
+      if (!module) missing.push('module');
       if (!projectName) missing.push('project name');
       if (!targetDir) missing.push('save location');
 
@@ -80,21 +80,21 @@
         return;
       }
 
-      vscode.postMessage({ type: 'create', model: model, projectName: projectName, sdkVersion: sdkVersion, targetDir: targetDir });
+      vscode.postMessage({ type: 'create', module: module, projectName: projectName, sdkVersion: sdkVersion, targetDir: targetDir });
     });
 
     // accept messages from extension to populate UI
     window.addEventListener('message', event => {
       const msg = event.data;
       // platform list not used in single-platform setup
-      if (msg.type === 'setModels') {
-        const modelSel = document.getElementById('model');
-        modelSel.innerHTML = '';
-        msg.models.forEach((m) => {
-          const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSel.appendChild(opt);
+      if (msg.type === 'setModules') {
+        const moduleSel = document.getElementById('module');
+        moduleSel.innerHTML = '';
+        msg.modules.forEach((m) => {
+          const opt = document.createElement('option'); opt.value = m; opt.textContent = m; moduleSel.appendChild(opt);
         });
-        if (msg.models && msg.models.length > 0) {
-          modelSel.value = msg.models[0];
+        if (msg.modules && msg.modules.length > 0) {
+          moduleSel.value = msg.modules[0];
         }
       }
       if (msg.type === 'setTargetDir') {

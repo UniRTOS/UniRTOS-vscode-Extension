@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { CommandItem } from '../views/commandsView';
 import { handleNewProject } from './newProject';
 import { showNewProjectDemo } from './newProjectDemo';
-import { showFlashFirmware } from './flashFirmware';
+import { showFlashFirmware } from './flash/flashFirmware';
 import { openSerialMonitor } from './debug';
 import { runBuildScript } from './build';
 

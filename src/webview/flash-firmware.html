@@ -84,16 +84,16 @@
         }
         return;
       }
-      // Verify the selected port corresponds to a QDLoader device
+      // Verify the selected port QDLoader or AT
       try {
         const portSel = document.getElementById('portSelect');
         let selectedLabel = '';
         if (portSel && portSel.options && portSel.selectedIndex >= 0) {
           selectedLabel = portSel.options[portSel.selectedIndex].text || '';
         }
-        if (selectedLabel && !/qdloader/i.test(selectedLabel)) {
+        if (selectedLabel && (!/qdloader/i.test(selectedLabel) && !/at/i.test(selectedLabel))) {
           if (errEl) {
-            errEl.textContent = 'Selected port is not QDLoader. Please select the QDLoader port.';
+            errEl.textContent = 'Selected port is not QDLoader or AT. Please select the correct port.';
             errEl.style.display = 'block';
             setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 6000);
           }
@@ -109,7 +109,7 @@
         }
         return;
       }
-      // Before flashing, request fresh port list and verify QDLoader is present.
+      // Before flashing, request fresh port list and verify QDLoader or AT is present.
       // The extension will respond with a 'ports' message which we handle below.
       if (vscode) {
         preFlashCheck = true;
@@ -119,7 +119,7 @@
           preFlashCheck = false;
           const err = document.getElementById('flashError');
           if (err) {
-            err.textContent = 'qdloader port is avilable for 15 sec or less, please try again';
+            err.textContent = 'QDLoader port is available for 15 sec or less, please try again';
             err.style.display = 'block';
             setTimeout(() => { if (err) err.style.display = 'none'; }, 6000);
           }
@@ -133,6 +133,7 @@
         uniRTOSState = !!msg.value;
         return;
       }
+
       if (msg && msg.command === 'ports') {
         const select = document.getElementById('portSelect');
         if (!select) return;
@@ -146,7 +147,7 @@
             if (preFlashTimeoutId) { clearTimeout(preFlashTimeoutId); preFlashTimeoutId = null; }
             const err = document.getElementById('flashError');
             if (err) {
-              err.textContent = 'qdloader port is avilable for 15 sec or less, please try again';
+              err.textContent = 'QDLoader port is available for 15 sec or less, please try again';
               err.style.display = 'block';
               setTimeout(() => { if (err) err.style.display = 'none'; }, 6000);
             }
@@ -162,18 +163,23 @@
             preFlashCheck = false;
             if (preFlashTimeoutId) { clearTimeout(preFlashTimeoutId); preFlashTimeoutId = null; }
             try {
-              const qd = ports.find(p => (p.label || '').toLowerCase().includes('qdloader')) || ports.find(p => (p.value || '').toLowerCase().includes('qdloader'));
-              if (!qd) {
+              // Matches either "qdloader" OR "at" as sub-strings
+              const portPattern = /qdloader|at/i; 
+
+              const targetPort = ports.find(p => 
+                portPattern.test(p.label || '') || portPattern.test(p.value || '')
+              );
+              if (!targetPort) {
                 const err = document.getElementById('flashError');
                 if (err) {
-                  err.textContent = 'qdloader port is avilable for 15 sec or less, please try again';
+                  err.textContent = 'QDLoader port is available for 15 sec or less, please try again';
                   err.style.display = 'block';
                   setTimeout(() => { if (err) err.style.display = 'none'; }, 6000);
                 }
               } else {
-                // Found QDLoader — proceed with flash using that port
-                selectedPort = qd.value || qd.label || selectedPort;
-                if (vscode) vscode.postMessage({ command: 'flashFirmware', selectedPort: selectedPort, selectedFile: selectedFile });
+                // Found QDLoader or AT — proceed with flash using that port
+                selectedPort = targetPort.value || targetPort.label || selectedPort;
+                if (vscode) vscode.postMessage({ command: 'flashFirmware', selectedPort: selectedPort, selectedLabel: targetPort.label, selectedFile: selectedFile });
               }
             } catch (e) {}
           }

@@ -3,7 +3,7 @@ import * as path from 'path';
 import { chooseDirectoryAndSet } from './cloneSdk';
 import { runUnirtosCli, ensureVenv } from './pythonCli';
 import { showNewProjectDemo } from './newProjectDemo';
-import { platformFilePath, sendPlatforms, handlePlatformChanged, setupWebviewTheme } from '../utils';
+import { platformFilePath, sendPlatforms, handlePlatformChanged, setupWebviewTheme, writeConfigFileToFolder } from '../utils';
 import { injectHeaderIntoHtml } from './header';
 import * as fs from 'fs';
 import { runBasicEnvChecks } from './checkView';
@@ -11,7 +11,7 @@ import { runBasicEnvChecks } from './checkView';
 let newProjectPanel: vscode.WebviewPanel | undefined;
 
 export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
-  // show to user list of platforms and models to choose and download the sdk
+  // show to user list of platforms and modules to choose and download the sdk
   let title = 'New Project';
   if (!labelsArr.includes(title)) return false;
 
@@ -71,7 +71,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     if (!msg || !msg.type) return;
     if (msg.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
-      // If there's only one platform, pre-send its models so the webview can populate `model` without a platform selector
+      // If there's only one platform, pre-send its modules so the webview can populate `module` without a platform selector
       try {
         if (platformKeys.length === 1) {
           handlePlatformChanged(platformKeys[0], platforms, panel.webview);
@@ -109,7 +109,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     if (msg.type === 'create') {
       const pickedTargetDir = msg.targetDir as string | undefined;
       const pickedProjectName = msg.projectName as string | undefined;
-      const pickedModel = msg.model as string | undefined;
+      const pickedModule = msg.module as string | undefined;
 
       let dest: string | undefined;
       try {
@@ -118,9 +118,12 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
           try {
             runUnirtosCli(['new', pickedProjectName, '-d', pickedTargetDir]);
             dest = path.join(pickedTargetDir, pickedProjectName);
+            writeConfigFileToFolder(dest, { pickedModule: pickedModule });
+
           } catch (cliErr) {
             console.warn('unirtos_cli failed, falling back to clone:', cliErr);
           }
+
         }
       } catch (e) {
         console.warn('Error invoking unirtos_cli:', e);

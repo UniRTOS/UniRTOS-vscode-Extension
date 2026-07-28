@@ -4,10 +4,21 @@ import * as path from 'path';
 import * as https from 'https';
 import * as os from 'os';
 import { execSync, spawnSync } from 'child_process';
+import { TOOLCHAIN_URL } from '../constants';
 
 export async function downloadUnirtos(context: vscode.ExtensionContext): Promise<void> {
-  const url = 'https://www.quectel.com.cn/wp-content/uploads/2026/04/unirtos-toolchain.zip';
-  const defaultDir = path.join(os.tmpdir(), 'unirtos-downloads');
+  return downloadAndInstall(TOOLCHAIN_URL, context, { defaultDir: path.join(os.tmpdir(), 'unirtos-downloads'), title: 'Downloading UniRTOS toolchain', installTitle: 'Installing UniRTOS toolchain' });
+}
+
+export async function downloadAndInstall(
+  url: string,
+  context: vscode.ExtensionContext,
+  options?: { defaultDir?: string; title?: string; installTitle?: string; autoRunInstaller?: boolean }
+): Promise<void> {
+  const defaultDir = options && options.defaultDir ? options.defaultDir : path.join(os.tmpdir(), 'unirtos-downloads');
+  const progressTitle = options && options.title ? options.title : 'Downloading';
+  const installTitle = options && options.installTitle ? options.installTitle : 'Installing';
+  const autoRunInstaller = options && typeof options.autoRunInstaller === 'boolean' ? options.autoRunInstaller : true;
 
   let targetDir = defaultDir;
   let pick: readonly vscode.Uri[] | undefined;
@@ -38,7 +49,7 @@ export async function downloadUnirtos(context: vscode.ExtensionContext): Promise
   } catch (e) {
     // ignore
   }
-  
+
   // Derive filename from URL to avoid hardcoded mismatch
   let filename = '';
   try {
@@ -51,112 +62,131 @@ export async function downloadUnirtos(context: vscode.ExtensionContext): Promise
   const dest = path.join(targetDir, filename);
 
   await vscode.window.withProgress({
-      location: vscode.ProgressLocation.Notification,
-      title: 'Downloading UniRTOS toolchain',
-      cancellable: true
-    }, (progress, token) => {
-      return new Promise<void>((resolve, reject) => {
-        let cancelled = false;
-        const req = https.get(url, (res) => {
-          const startTs = Date.now();
-          let lastReportTs = 0;
+    location: vscode.ProgressLocation.Notification,
+    title: progressTitle,
+    cancellable: true
+  }, (progress, token) => {
+    return new Promise<void>((resolve, reject) => {
+      let cancelled = false;
+      const req = https.get(url, (res) => {
+        const startTs = Date.now();
+        let lastReportTs = 0;
 
-          function formatSeconds(sec: number) {
-            if (!isFinite(sec) || sec < 0) return 'calculating...';
-            const s = Math.max(0, Math.round(sec));
-            const hours = Math.floor(s / 3600);
-            const mins = Math.floor((s % 3600) / 60);
-            const secs = s % 60;
-            if (hours > 0) return `${hours}h ${mins}m`;
-            if (mins > 0) return `${mins}m ${secs}s`;
-            return `${secs}s`;
-          }
+        function formatSeconds(sec: number) {
+          if (!isFinite(sec) || sec < 0) return 'calculating...';
+          const s = Math.max(0, Math.round(sec));
+          const hours = Math.floor(s / 3600);
+          const mins = Math.floor((s % 3600) / 60);
+          const secs = s % 60;
+          if (hours > 0) return `${hours}h ${mins}m`;
+          if (mins > 0) return `${mins}m ${secs}s`;
+          return `${secs}s`;
+        }
 
-          if ((res.statusCode || 0) >= 400) {
-            reject(new Error('Download failed with status ' + res.statusCode));
-            return;
-          }
-          const total = parseInt(String(res.headers['content-length'] || '0'), 10) || 0;
-          let received = 0;
-          let lastPercentReported = 0;
-          const fileStream = fs.createWriteStream(dest);
+        if ((res.statusCode || 0) >= 400) {
+          reject(new Error('Download failed with status ' + res.statusCode));
+          return;
+        }
+        const total = parseInt(String(res.headers['content-length'] || '0'), 10) || 0;
+        let received = 0;
+        let lastPercentReported = 0;
+        const fileStream = fs.createWriteStream(dest);
 
-          token.onCancellationRequested(() => {
-            cancelled = true;
-            try { req.destroy(); } catch (e) {}
-            try { fileStream.close(); } catch (e) {}
-            try { fs.unlinkSync(dest); } catch (e) {}
-            vscode.window.showErrorMessage('Download cancelled. UniRTOS toolchain tool not found please check extension README for the correct setup!');
-            resolve();
-          });
+        token.onCancellationRequested(() => {
+          cancelled = true;
+          try { req.destroy(); } catch (e) {}
+          try { fileStream.close(); } catch (e) {}
+          try { fs.unlinkSync(dest); } catch (e) {}
+          vscode.window.showErrorMessage('Download cancelled. Please check readme for the URL and manual download if needed.');
+          resolve();
+        });
 
-          res.on('data', (chunk: Buffer) => {
-            received += chunk.length;
-            if (total) {
-              const now = Date.now();
-              const percent = Math.min(100, (received / total) * 100);
-              const inc = Math.max(0, percent - lastPercentReported);
+        res.on('data', (chunk: Buffer) => {
+          received += chunk.length;
+          if (total) {
+            const now = Date.now();
+            const percent = Math.min(100, (received / total) * 100);
+            const inc = Math.max(0, percent - lastPercentReported);
 
-              // estimate time left
-              const elapsed = (now - startTs) / 1000; // seconds
-              const rate = elapsed > 0 ? (received / elapsed) : 0; // bytes/sec
-              let etaMsg = 'ETA: calculating...';
-              if (rate > 0) {
-                const remaining = Math.max(0, total - received);
-                etaMsg = `ETA: ${formatSeconds(remaining / rate)}`;
-              }
-
-              // throttle updates to once every 5 seconds, but always report on completion
-              if ((now - lastReportTs >= 5000 && inc > 0) || percent === 100) {
-                progress.report({ increment: inc, message: etaMsg });
-                lastReportTs = now;
-                lastPercentReported = percent;
-              }
+            // estimate time left
+            const elapsed = (now - startTs) / 1000; // seconds
+            const rate = elapsed > 0 ? (received / elapsed) : 0; // bytes/sec
+            let etaMsg = 'ETA: calculating...';
+            if (rate > 0) {
+              const remaining = Math.max(0, total - received);
+              etaMsg = `ETA: ${formatSeconds(remaining / rate)}`;
             }
-          });
 
-          res.pipe(fileStream);
+            // throttle updates to once every 5 seconds, but always report on completion
+            if ((now - lastReportTs >= 5000 && inc > 0) || percent === 100) {
+              progress.report({ increment: inc, message: etaMsg });
+              lastReportTs = now;
+              lastPercentReported = percent;
+            }
+          }
+        });
 
-          fileStream.on('finish', () => {
-            fileStream.close(() => {
-              if (cancelled) {
-                try { fs.unlinkSync(dest); } catch (e) {}
-                resolve();
+        res.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+          fileStream.close(() => {
+            if (cancelled) {
+              try { fs.unlinkSync(dest); } catch (e) {}
+              resolve();
+              return;
+            }
+
+            // Automatically unzip and run installer with progress messages
+            vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: installTitle, cancellable: false }, async (progress) => {
+              progress.report({ message: 'Unpacking...' });
+              let outDir: string;
+              try {
+                outDir = await unzipArchive(dest);
+              } catch (err) {
+                vscode.window.showErrorMessage('Failed to unzip archive: ' + String(err));
                 return;
               }
-              // Automatically unzip and run installer with progress messages
-              vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Installing UniRTOS toolchain', cancellable: false }, async (progress) => {
-                progress.report({ message: 'Unpacking...' });
-                let outDir: string;
-                try {
-                  outDir = await unzipArchive(dest);
-                } catch (err) {
-                  vscode.window.showErrorMessage('Failed to unzip archive: ' + String(err));
-                  return;
-                }
-                progress.report({ message: 'Running installer...' });
-                try {
-                  await promptAndRunExecutable(outDir);
-                } catch (err) {
-                  vscode.window.showErrorMessage('Failed to run installer: ' + String(err));
-                  return;
-                }
-                progress.report({ message: 'Done' });
-              });
-              resolve();
-            });
-          });
 
-          fileStream.on('error', (err) => {
-            reject(err);
+              // If autoRunInstaller is disabled, stop here and instruct the user where to install
+              if (!autoRunInstaller) {
+                const installMsg = `Please install the files from here: ${outDir}`;
+                const open = 'Open folder';
+                const choice = await vscode.window.showInformationMessage(installMsg, open);
+                if (choice === open) {
+                  try {
+                    await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outDir));
+                  } catch (e) {
+                    // ignore
+                  }
+                }
+                return;
+              }
+
+              progress.report({ message: 'Running installer...' });
+              try {
+                await promptAndRunExecutable(outDir);
+              } catch (err) {
+                vscode.window.showErrorMessage('Failed to run installer: ' + String(err));
+                return;
+              }
+
+              progress.report({ message: 'Done' });
+            });
+
+            resolve();
           });
         });
 
-        req.on('error', (err) => {
+        fileStream.on('error', (err) => {
           reject(err);
         });
       });
+
+      req.on('error', (err) => {
+        reject(err);
+      });
     });
+  });
 }
 
 export async function unzipArchive(zipPath: string, destDir?: string): Promise<string> {

@@ -141,4 +141,4 @@ vite.config.ts.timestamp-*
 # local files
 src/info
 *.vsix
-src/data/Eigen_718/cfg.digest
+*.digest

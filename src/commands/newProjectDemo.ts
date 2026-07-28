@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { chooseDirectoryAndSet } from './cloneSdk';
 import { runUnirtosCli } from './pythonCli';
-import { platformFilePath, sendPlatforms, handlePlatformChanged, setupWebviewTheme } from '../utils';
+import { platformFilePath, sendPlatforms, handlePlatformChanged, setupWebviewTheme, writeConfigFileToFolder } from '../utils';
 import { runBasicEnvChecks } from './checkView';
 import { injectHeaderIntoHtml } from './header';
 import { CONFIG_FILE } from '../constants';
@@ -109,8 +109,8 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   const platforms = platformFilePath(context) || {};
   const platformKeys = Object.keys(platforms);
 
-  // attempt to read CONFIG_FILE model from the current workspace (if any)
-  let defaultModel: string | undefined;
+  // attempt to read CONFIG_FILE module from the current workspace (if any)
+  let defaultModule: string | undefined;
   try {
     const folders = vscode.workspace.workspaceFolders;
     if (folders && folders.length > 0) {
@@ -120,8 +120,8 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
         try {
           const raw = fs.readFileSync(appJsonPath, 'utf8');
           const parsed = JSON.parse(raw || '{}');
-          if (parsed && typeof parsed.model === 'string' && parsed.model.trim().length > 0) {
-            defaultModel = parsed.model.trim();
+          if (parsed && typeof parsed.pickedModule === 'string' && parsed.pickedModule.trim().length > 0) {
+            defaultModule = parsed.pickedModule.trim();
           }
         } catch (e) {
           // ignore parse errors
@@ -136,15 +136,15 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
     if (!message || !message.type) return;
     if (message.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
-      // If there's only one platform, pre-send its models so the webview can populate `model` without a platform selector
+      // If there's only one platform, pre-send its modules so the webview can populate `module` without a platform selector
       try {
         if (platformKeys.length === 1) {
           handlePlatformChanged(platformKeys[0], platforms, panel.webview);
         }
       } catch (e) { /* ignore */ }
-      // if we detected a default model in the workspace, send it so the webview can pre-select
-      if (defaultModel) {
-        try { panel.webview.postMessage({ type: 'setModelValue', value: defaultModel }); } catch (e) {}
+      // if we detected a default module in the workspace, send it so the webview can pre-select
+      if (defaultModule) {
+        try { panel.webview.postMessage({ type: 'setModuleValue', value: defaultModule }); } catch (e) {}
       }
       // Ensure theme is applied when webview is ready
       try { setupWebviewTheme(panel); } catch (e) { /* ignore */ }
@@ -163,9 +163,9 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
 
     if (message.type === 'platformChanged') {
       handlePlatformChanged(message.value, platforms, panel.webview);
-      // after posting models, ask webview to select the workspace model if available
-      if (defaultModel) {
-        try { panel.webview.postMessage({ type: 'setModelValue', value: defaultModel }); } catch (e) {}
+      // after posting modules, ask webview to select the workspace module if available
+      if (defaultModule) {
+        try { panel.webview.postMessage({ type: 'setModuleValue', value: defaultModule }); } catch (e) {}
       }
       return;
     }
@@ -297,6 +297,10 @@ async function handleCreateDemoWithTarget(message: any, context: vscode.Extensio
     });
 
     vscode.window.showInformationMessage(`Demo project '${projectName}' created successfully in ${targetDir}.`);
+
+    // update project config: write to a folder named <projectName>-<version> under the selected targetDir
+    const configFolder = version ? path.join(targetDir, `${projectName}-${version}`) : path.join(targetDir, projectName);
+    writeConfigFileToFolder(configFolder, { pickedModule: message.payload.module });
     
     // Find and open the newly created project folder
     try {

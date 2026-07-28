@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { exec } from 'child_process';
+import { CONFIG_FILE } from './constants';
 
 export function platformFilePath(context: vscode.ExtensionContext): Record<string, any> {
     const platformFile = path.join(context.extensionPath, 'src', 'data', 'platform.json');
@@ -17,16 +18,16 @@ export function platformFilePath(context: vscode.ExtensionContext): Record<strin
 
 export function handlePlatformChanged(msgValue: unknown, platforms: Record<string, any>, webview: vscode.Webview) {
     const selected = (msgValue as string) || undefined;
-    let models: string[] = [];
+    let modules: string[] = [];
     if (selected) {
-        const modelsRaw = platforms[selected];
-        if (Array.isArray(modelsRaw)) models = modelsRaw as string[];
-        else if (modelsRaw && typeof modelsRaw === 'object') models = Object.keys(modelsRaw as Record<string, unknown>);
+        const modulesRaw = platforms[selected];
+        if (Array.isArray(modulesRaw)) modules = modulesRaw as string[];
+        else if (modulesRaw && typeof modulesRaw === 'object') modules = Object.keys(modulesRaw as Record<string, unknown>);
     }
     try {
-        webview.postMessage({ type: 'setModels', models });
+        webview.postMessage({ type: 'setModules', modules: modules });
     } catch (e) {
-        console.warn('Failed to post setModels message to webview:', e);
+        console.warn('Failed to post setModules message to webview:', e);
     }
 }
 
@@ -56,28 +57,51 @@ export function setupWebviewTheme(panel: vscode.WebviewPanel) {
 }
 
 /**
- * Write a minimal `app.json` manifest into `folderPath`.
+ * Write a minimal CONFIG_FILE manifest into `folderPath`.
  * Returns true on success, false on error.
  */
-export function writeAppJsonToFolder(folderPath: string, appManifest: any): boolean {
+export function writeConfigFileToFolder(folderPath: string, appManifest: any): boolean {
     try {
-        // add computed version if missing: model + "R01A01_BETA_OCPU" + date(YYYYMMDD)
+        // add computed version if missing: module + "R01A01_BETA_OCPU" + date(YYYYMMDD)
         if (!appManifest.version) {
-            const model = (appManifest && typeof appManifest.model === 'string') ? appManifest.model : '';
+            const module = (appManifest && typeof appManifest.pickedModule === 'string') ? appManifest.pickedModule : '';
             const now = new Date();
             const yyyy = now.getFullYear();
             const mm = String(now.getMonth() + 1).padStart(2, '0');
             const dd = String(now.getDate()).padStart(2, '0');
             const date = `${yyyy}${mm}${dd}`;
-            appManifest.version = `${model}R01A01_BETA_OCPU${date}`;
+            appManifest.version = `${module}R01A01_BETA_OCPU${date}`;
         }
 
-        const appJsonPath = path.join(folderPath, 'app.json');
-        fs.writeFileSync(appJsonPath, JSON.stringify(appManifest, null, 2), 'utf8');
+        // Merge into existing CONFIG_FILE if present; only update build.module and build.version
+        const appJsonPath = path.join(folderPath, CONFIG_FILE);
+        let toWrite: any = {};
+        try {
+            if (fs.existsSync(appJsonPath)) {
+                const rawExisting = fs.readFileSync(appJsonPath, 'utf8');
+                toWrite = rawExisting ? JSON.parse(rawExisting) : {};
+            } else {
+                toWrite = {};
+            }
+        } catch (e) {
+            toWrite = {};
+        }
+
+        if (!toWrite.build || typeof toWrite.build !== 'object') {
+            toWrite.build = {};
+        }
+        if (typeof appManifest.pickedModule !== 'undefined') {
+            toWrite.build.module = appManifest.pickedModule;
+        }
+        if (typeof appManifest.version !== 'undefined') {
+            toWrite.build.version = appManifest.version;
+        }
+
+        fs.writeFileSync(appJsonPath, JSON.stringify(toWrite, null, 2), 'utf8');
         exec(`attrib +h "${appJsonPath}"`); // hide the file on Windows
         return true;
     } catch (e) {
-        console.warn('Failed to write app.json correctly to folder:', folderPath, e);
+        console.warn(`Failed to write ${CONFIG_FILE} correctly to folder:`, folderPath, e);
         return false;
     }
 }

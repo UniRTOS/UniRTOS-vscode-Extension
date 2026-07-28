@@ -17,7 +17,7 @@ export async function runBuildScript(workspaceRoot: string, context: vscode.Exte
 
   // Ask user if they want to build the SDK for the selected device
   const buildChoice = await vscode.window.showInformationMessage(
-    `Would you like to build the SDK now?`,
+    `Would you like to build the SDK now?\n\nNote:\nTo update the version name, please edit env_config.json and set the "build.version" field.`,
     { modal: true },
     'Yes'
   );
