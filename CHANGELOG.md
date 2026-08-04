@@ -1,3 +1,10 @@
+## 1.1.3
+- .Fetch sdk verions correctly
+- .Add Clean Build function
+- .Speed up project creation and remove extra checks
+- .Statusbar quick actions: Build, Clean, Flash and Build Module
+- .Minor fixes to interface and performance
+
 ## 1.1.2
 - .Update readme + requirments
 - .Support flashing with AT port

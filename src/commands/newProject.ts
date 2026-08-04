@@ -3,12 +3,42 @@ import * as path from 'path';
 import { chooseDirectoryAndSet } from './cloneSdk';
 import { runUnirtosCli, ensureVenv } from './pythonCli';
 import { showNewProjectDemo } from './newProjectDemo';
-import { platformFilePath, sendPlatforms, handlePlatformChanged, setupWebviewTheme, writeConfigFileToFolder } from '../utils';
+import {
+  getPlatforms,
+  sendPlatforms,
+  handlePlatformChanged,
+  setupWebviewTheme,
+  writeConfigFile,
+  openWorkspaceOrFolder
+} from '../utils';
 import { injectHeaderIntoHtml } from './header';
 import * as fs from 'fs';
 import { runBasicEnvChecks } from './checkView';
 
 let newProjectPanel: vscode.WebviewPanel | undefined;
+
+// get an array of SDK versions.
+export function getSdkVersions(): string[] {
+  try {
+    ensureVenv();
+  } catch (e) {
+    console.warn('Failed to ensure venv before listing SDKs:', e);
+  }
+
+  try {
+    const out = runUnirtosCli(['ls-sdk', '-r']);
+    const lines = out.split(/\r?\n/);
+    const versions: string[] = [];
+    for (const line of lines) {
+      const m = line.match(/^\s*-\s*(\S.*)$/);
+      if (m) versions.push(m[1].trim());
+    }
+    return versions;
+  } catch (e) {
+    console.warn('Failed to get installed SDK versions:', e);
+    return [];
+  }
+}
 
 export async function handleNewProject(labelsArr: string[], context: vscode.ExtensionContext): Promise<boolean> {
   // show to user list of platforms and modules to choose and download the sdk
@@ -16,7 +46,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   if (!labelsArr.includes(title)) return false;
 
   // load platforms JSON from extension
-  const platforms = platformFilePath(context);
+  const platforms = getPlatforms(context);
 
   const platformKeys = Object.keys(platforms);
   if (platformKeys.length === 0) {
@@ -71,6 +101,12 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
     if (!msg || !msg.type) return;
     if (msg.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
+      try {
+        const sdks = getSdkVersions();
+        panel.webview.postMessage({ type: 'setSdkVersions', versions: sdks });
+      } catch (e) {
+        console.warn('Failed to send SDK versions to webview:', e);
+      }
       // If there's only one platform, pre-send its modules so the webview can populate `module` without a platform selector
       try {
         if (platformKeys.length === 1) {
@@ -110,20 +146,20 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
       const pickedTargetDir = msg.targetDir as string | undefined;
       const pickedProjectName = msg.projectName as string | undefined;
       const pickedModule = msg.module as string | undefined;
+      const sdkVersion = msg.sdkVersion as string | undefined;
 
       let dest: string | undefined;
       try {
         if (pickedProjectName && pickedTargetDir) {
-          ensureVenv();
+          vscode.window.showInformationMessage(`Creating new project and setting up environment...`);
           try {
-            runUnirtosCli(['new', pickedProjectName, '-d', pickedTargetDir]);
+            runUnirtosCli(['new', pickedProjectName, '-d', pickedTargetDir]); // create project
             dest = path.join(pickedTargetDir, pickedProjectName);
-            writeConfigFileToFolder(dest, { pickedModule: pickedModule });
-
+            writeConfigFile(dest, { pickedModule: pickedModule, sdkVersion: sdkVersion }); // update config file
+            runUnirtosCli(['env-setup', '-d', dest]); // run env-setup command first
           } catch (cliErr) {
-            console.warn('unirtos_cli failed, falling back to clone:', cliErr);
+            vscode.window.showErrorMessage(`unirtos_cli failed: ${cliErr}`);
           }
-
         }
       } catch (e) {
         console.warn('Error invoking unirtos_cli:', e);
@@ -132,7 +168,7 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
       panel.dispose();
       if (dest) {
         try {
-          await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(dest), true);
+          await openWorkspaceOrFolder(dest);
         } catch (e) {
           console.warn('Failed to open cloned project folder:', e);
         }

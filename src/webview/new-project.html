@@ -21,7 +21,9 @@
         </div>
         <div class="column width-260">
           <label for="module">module</label>
-          <select id="module" class="select-full"></select>
+          <select id="module" class="select-full">
+            <option selected>loading....</option>
+          </select>
         </div>
       </div>
   </div>
@@ -35,9 +37,7 @@
   <div class="row">
     <label for="sdkVersion">SDK version</label>
     <select id="sdkVersion" class="input-field">
-      <option value="v1.0" selected>v1.0</option>
-      <option value="v1.1" hidden>v1.1</option>
-      <option value="v2.0" hidden>v2.0</option>
+      <option selected>loading....</option>
     </select>
   </div>
 
@@ -100,6 +100,20 @@
       if (msg.type === 'setTargetDir') {
         const input = document.getElementById('targetDir');
         if (input) input.value = msg.path || '';
+      }
+      if (msg.type === 'setSdkVersions') {
+        const sdkSel = document.getElementById('sdkVersion');
+        if (!sdkSel) return;
+        sdkSel.innerHTML = '';
+        let versions = (msg.versions || []).map(v => String(v).trim()).filter(v => v.length > 0);
+
+        versions.forEach((v, idx) => {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          if (idx === versions.length - 1) opt.selected = true;
+          sdkSel.appendChild(opt);
+        });
       }
     });
   </script>

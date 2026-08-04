@@ -43,6 +43,7 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
         new CommandItem('New Project From Demo'),
         new CommandItem('Open Existing Project'),
         new CommandItem('Build'),
+        new CommandItem('Clean'),
         new CommandItem('Flash'),
         new CommandItem('Debug'),
       ];

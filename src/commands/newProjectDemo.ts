@@ -3,10 +3,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { chooseDirectoryAndSet } from './cloneSdk';
 import { runUnirtosCli } from './pythonCli';
-import { platformFilePath, sendPlatforms, handlePlatformChanged, setupWebviewTheme, writeConfigFileToFolder } from '../utils';
+import {
+  getPlatforms,
+  sendPlatforms,
+  handlePlatformChanged,
+  setupWebviewTheme,
+  readConfigFile,
+  writeConfigFile,
+  openWorkspaceOrFolder
+} from '../utils';
 import { runBasicEnvChecks } from './checkView';
 import { injectHeaderIntoHtml } from './header';
-import { CONFIG_FILE } from '../constants';
 
 let newProjectDemoPanel: vscode.WebviewPanel | undefined;
 
@@ -106,30 +113,14 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   panel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
 
   // read platforms config and expose platforms list
-  const platforms = platformFilePath(context) || {};
+  const platforms = getPlatforms(context) || {};
   const platformKeys = Object.keys(platforms);
 
   // attempt to read CONFIG_FILE module from the current workspace (if any)
   let defaultModule: string | undefined;
-  try {
-    const folders = vscode.workspace.workspaceFolders;
-    if (folders && folders.length > 0) {
-      const workspaceRoot = folders[0].uri.fsPath;
-      const appJsonPath = path.join(workspaceRoot, CONFIG_FILE);
-      if (fs.existsSync(appJsonPath)) {
-        try {
-          const raw = fs.readFileSync(appJsonPath, 'utf8');
-          const parsed = JSON.parse(raw || '{}');
-          if (parsed && typeof parsed.pickedModule === 'string' && parsed.pickedModule.trim().length > 0) {
-            defaultModule = parsed.pickedModule.trim();
-          }
-        } catch (e) {
-          // ignore parse errors
-        }
-      }
-    }
-  } catch (e) {
-    // ignore
+  const config = readConfigFile();
+  if (config && typeof config.pickedModule === 'string' && config.pickedModule.trim().length > 0) {
+    defaultModule = config.pickedModule.trim();
   }
 
   panel.webview.onDidReceiveMessage(async (message) => {
@@ -174,7 +165,7 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
     if (message.type === 'createDemo') {
       const payload = message.payload || {};
       if ('targetDir' in payload) {
-        await handleCreateDemoWithTarget(message, context); // create new project
+        await handleCreateDemoWithTarget(message, context, panel); // create new project
       } else {
         await handleCreateDemoMessage(message, context); // use current project
       }
@@ -210,15 +201,12 @@ function findProjectFolder(dirPath: string): string | undefined {
     
     return path.join(dirPath, newestFolder.name);
   } catch (e) {
-    console.warn('Failed to find newest folder:', e);
+    console.warn('Failed to find project folder:', e);
     return undefined;
   }
 }
 
-/**
- * Run the top-level build script `buildlib_unirtos.bat` and stream output to an OutputChannel.
- * Returns true on success, false on failure.
- */
+// create demo project, inside current workspace
 async function handleCreateDemoMessage(message: any, context: vscode.ExtensionContext) {
   const projectConfigPassed = runBasicEnvChecks(context, true);
   if (!projectConfigPassed.configPassed) {
@@ -264,7 +252,7 @@ async function handleCreateDemoMessage(message: any, context: vscode.ExtensionCo
   }
 }
 
-async function handleCreateDemoWithTarget(message: any, context: vscode.ExtensionContext) {
+async function handleCreateDemoWithTarget(message: any, context: vscode.ExtensionContext, panel: vscode.WebviewPanel) {
   if (!message || !message.payload) return;
   const payload = message.payload || {};
   const projectName = (payload.name || '').toString().trim();
@@ -296,17 +284,20 @@ async function handleCreateDemoWithTarget(message: any, context: vscode.Extensio
       runUnirtosCli(args);
     });
 
-    vscode.window.showInformationMessage(`Demo project '${projectName}' created successfully in ${targetDir}.`);
+    vscode.window.showInformationMessage(`Demo project '${projectName}' created successfully.`);
 
     // update project config: write to a folder named <projectName>-<version> under the selected targetDir
     const configFolder = version ? path.join(targetDir, `${projectName}-${version}`) : path.join(targetDir, projectName);
-    writeConfigFileToFolder(configFolder, { pickedModule: message.payload.module });
+    writeConfigFile(configFolder, { pickedModule: message.payload.module });
+    runUnirtosCli(['env-setup', '-d', configFolder]); // run env-setup command first
     
     // Find and open the newly created project folder
+    panel.dispose();
     try {
       const projectFolder = findProjectFolder(targetDir);
       if (projectFolder) {
-        await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectFolder), false);
+        await openWorkspaceOrFolder(projectFolder);
+        
       }
     } catch (e) {
       console.warn('Failed to open created project folder:', e);

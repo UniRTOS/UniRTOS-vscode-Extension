@@ -25,11 +25,11 @@ function getPythonLauncher(): string {
   throw new Error('Python not found');
 }
 
-export function ensureVenv(): boolean {
+export function ensureVenv(silent: boolean = false): boolean {
   if (!venvPath) return false;
   if (fs.existsSync(venvPath)) {
     try {
-      vscode.window.showInformationMessage('Activating UniRTOS virtual environment...');
+      if (!silent) vscode.window.showInformationMessage('Activating UniRTOS virtual environment...');
       execSync(`"${pythonExe}" -m unirtos_cli version`, { stdio: 'pipe' });
       execSync(`"${pythonExe}" -m pip install --upgrade pip unirtos_cli`, { stdio: 'pipe' });
       return true;
@@ -39,9 +39,9 @@ export function ensureVenv(): boolean {
   try {
     const launcher = getPythonLauncher();
     fs.mkdirSync(path.dirname(venvPath), { recursive: true });
-    vscode.window.showInformationMessage('Creating UniRTOS virtual environment...');
+    if (!silent) vscode.window.showInformationMessage('Creating UniRTOS virtual environment...');
     execSync(`${launcher} -m venv "${venvPath}"`, { stdio: 'pipe' });
-    vscode.window.showInformationMessage('Installing UniRTOS cli...');
+    if (!silent) vscode.window.showInformationMessage('Installing UniRTOS cli...');
     execSync(`"${pythonExe}" -m pip install --upgrade pip unirtos_cli`, { stdio: 'pipe' });
     return true;
   } catch (e) {

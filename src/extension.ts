@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { CommandsViewProvider } from './views/commandsView';
 import { registerCommandHandlers } from './commands/commandHandlers';
+import { registerStatusBarItems } from './views/statusBar';
 
 export function activate(context: vscode.ExtensionContext) {
   const provider = new CommandsViewProvider();
@@ -10,6 +11,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.commands.registerCommand('unirtos.refreshCommands', () => provider.refresh()));
 
   registerCommandHandlers(context, treeView as any);
+  registerStatusBarItems(context);
 }
 
 export function deactivate() {}

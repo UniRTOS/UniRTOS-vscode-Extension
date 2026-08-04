@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { exec } from 'child_process';
 import { CONFIG_FILE } from './constants';
 
-export function platformFilePath(context: vscode.ExtensionContext): Record<string, any> {
+export function getPlatforms(context: vscode.ExtensionContext): Record<string, any> {
     const platformFile = path.join(context.extensionPath, 'src', 'data', 'platform.json');
     let platforms: Record<string, any> = {};
     try {
@@ -56,11 +56,25 @@ export function setupWebviewTheme(panel: vscode.WebviewPanel) {
     panel.onDidDispose(() => disp.dispose());
 }
 
-/**
- * Write a minimal CONFIG_FILE manifest into `folderPath`.
- * Returns true on success, false on error.
- */
-export function writeConfigFileToFolder(folderPath: string, appManifest: any): boolean {
+export function readConfigFile(): any | undefined {
+    try {
+        const folders = vscode.workspace.workspaceFolders;
+        if (!folders || folders.length === 0) return undefined;
+
+        const workspaceRoot = folders[0].uri.fsPath;
+        const configFilePath = path.join(workspaceRoot, CONFIG_FILE);
+        if (!fs.existsSync(configFilePath)) return undefined;
+
+        const raw = fs.readFileSync(configFilePath, 'utf8');
+        return JSON.parse(raw || '{}');
+    } catch (e) {
+        // ignore missing file / parse issues and let callers handle undefined
+        return undefined;
+    }
+}
+
+// write config to CONFIG_FILE
+export function writeConfigFile(folderPath: string, appManifest: any): boolean {
     try {
         // add computed version if missing: module + "R01A01_BETA_OCPU" + date(YYYYMMDD)
         if (!appManifest.version) {
@@ -97,11 +111,51 @@ export function writeConfigFileToFolder(folderPath: string, appManifest: any): b
             toWrite.build.version = appManifest.version;
         }
 
-        fs.writeFileSync(appJsonPath, JSON.stringify(toWrite, null, 2), 'utf8');
+        if (typeof appManifest.sdkVersion !== 'undefined') {
+            if (!toWrite.sdk || typeof toWrite.sdk !== 'object') {
+                toWrite.sdk = {};
+            }
+            toWrite.sdk.version = appManifest.sdkVersion;
+        }
+
+        const fd = fs.openSync(appJsonPath, 'r+'); // Open existing file without truncating
+        try {
+        fs.ftruncateSync(fd, 0); // Clear content
+        const updatedText = JSON.stringify(toWrite, null, 2) + '\n';
+
+        fs.writeFileSync(fd, updatedText, 'utf-8'); // Write new content
+        } finally {
+        fs.closeSync(fd); // Always close handle
+        }
+
         exec(`attrib +h "${appJsonPath}"`); // hide the file on Windows
         return true;
     } catch (e) {
         console.warn(`Failed to write ${CONFIG_FILE} correctly to folder:`, folderPath, e);
         return false;
+    }
+}
+
+// from Open a .code-workspace file or open dest folder
+export async function openWorkspaceOrFolder(dest: string): Promise<void> {
+    try {
+        let opened = false;
+        try {
+            const dirFiles = fs.readdirSync(dest);
+            const workspaceFile = dirFiles.find(f => f.endsWith('.code-workspace'));
+            if (workspaceFile) {
+                const workspacePath = path.join(dest, workspaceFile);
+                await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(workspacePath), false);
+                opened = true;
+            }
+        } catch (innerErr) {
+            // ignore errors reading the folder; fall back to opening the folder
+        }
+
+        if (!opened) {
+            await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(dest), true);
+        }
+    } catch (e) {
+        console.warn('Failed to open project workspace/folder:', e);
     }
 }

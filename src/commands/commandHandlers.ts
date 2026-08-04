@@ -5,6 +5,7 @@ import { showNewProjectDemo } from './newProjectDemo';
 import { showFlashFirmware } from './flash/flashFirmware';
 import { openSerialMonitor } from './debug';
 import { runBuildScript } from './build';
+import { runCleanScript } from './clean';
 
 export function registerCommandHandlers(context: vscode.ExtensionContext, treeView: vscode.TreeView<CommandItem>) {
 
@@ -29,9 +30,6 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
       // route based on primary selection
       const cmd = labelsArr[0] ?? '';
       switch (cmd) {
-        case 'Build':
-          await runBuildScript(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '', context);
-          return;
         case 'New Project':
           await handleNewProject(labelsArr, context);
           return;
@@ -46,28 +44,35 @@ export function registerCommandHandlers(context: vscode.ExtensionContext, treeVi
             }
             return;
           }
-          case 'Flash':
-            showFlashFirmware(context);
+        case 'Build':
+          await runBuildScript(vscode.workspace.workspaceFolders?.[0].uri.fsPath || '', context);
+          return;
+        case 'Clean':
+          await runCleanScript(context);
+          return;
+        case 'Flash':
+          showFlashFirmware(context);
+          return;
+        case 'Debug':
+          await openSerialMonitor(context);
+          return;
+        // Links
+        case 'Github':
+            await openUrlInIntegratedBrowser('https://github.com/UniRTOS');
             return;
-          case 'Debug':
-            await openSerialMonitor(context);
+        case 'Forum':
+            await openUrlInIntegratedBrowser('https://forums.quectel.com/categories');
             return;
-          case 'Github':
-              await openUrlInIntegratedBrowser('https://github.com/UniRTOS');
-              return;
-          case 'Forum':
-              await openUrlInIntegratedBrowser('https://forums.quectel.com/categories');
-              return;
-          case 'Offical Website':
-              await openUrlInIntegratedBrowser('https://www.quectel.com.cn/unirtos/unirtos');
-              return;
-          case 'Document Center':
-              await openUrlInIntegratedBrowser('https://www.quectel.com.cn/unirtos/software');
-              return;
-          default:
-          const labels = labelsArr.join(', ');
-          vscode.window.showInformationMessage(`Coming soon: ${labels || 'none'}`);
-          break;
+        case 'Offical Website':
+            await openUrlInIntegratedBrowser('https://www.quectel.com.cn/unirtos/unirtos');
+            return;
+        case 'Document Center':
+            await openUrlInIntegratedBrowser('https://www.quectel.com.cn/unirtos/software');
+            return;
+        default:
+        const labels = labelsArr.join(', ');
+        vscode.window.showInformationMessage(`Coming soon: ${labels || 'none'}`);
+        break;
       }
 
       return;
