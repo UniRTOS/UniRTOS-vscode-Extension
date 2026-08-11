@@ -4,7 +4,11 @@ import * as fs from 'fs';
 import { exec } from 'child_process';
 import { CONFIG_FILE } from './constants';
 
+let cachedPlatforms: Record<string, any> | undefined = undefined;
+
 export function getPlatforms(context: vscode.ExtensionContext): Record<string, any> {
+    if (cachedPlatforms) return cachedPlatforms; // use cached data
+    
     const platformFile = path.join(context.extensionPath, 'src', 'data', 'platform.json');
     let platforms: Record<string, any> = {};
     try {
@@ -13,6 +17,7 @@ export function getPlatforms(context: vscode.ExtensionContext): Record<string, a
     } catch (e) {
         platforms = {};
     }
+    cachedPlatforms = platforms;
     return platforms;
 }
 

@@ -12,6 +12,8 @@ export function initVenv(context: vscode.ExtensionContext) {
   pythonExe = process.platform === 'win32'
     ? path.join(venvPath, 'Scripts', 'python.exe')
     : path.join(venvPath, 'bin', 'python');
+
+  return pythonExe;
 }
 
 function getPythonLauncher(): string {

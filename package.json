@@ -3,7 +3,7 @@
   "displayName": "UniRTOS",
   "icon": "images/icon.png",
   "publisher": "Quectel",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p ."
@@ -17,7 +17,8 @@
   "activationEvents": [
     "onView:unirtos.commands",
     "onCommand:unirtos.refreshCommands",
-    "onCommand:unirtos.runCommand"
+    "onCommand:unirtos.runCommand",
+    "onCommand:unirtos.openWalkthrough"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -38,16 +39,61 @@
         }
       ]
     },
-    "commands": [
-      {
-        "command": "unirtos.refreshCommands",
-        "title": "Refresh Commands"
-      },
-      {
-        "command": "unirtos.runCommand",
-        "title": "Run Command"
-      }
-    ]
+    "commands": [],
+    "walkthroughs": [
+			{
+				"id": "unirtosWalkthrough",
+				"title": "Unirtos Walkthrough",
+				"description": "Welcome to the UniRTOS VS Code Extension.\n\nThis extension provides an integrated development experience for UniRTOS",
+				"steps": [
+					{
+						"id": "toolchainStep",
+						"title": "Install UniRTOS toolchain",
+						"description": "UniRTOS toolchain provides the needed packages to run the extension.\n[Install UniRTOS Toolchain](command:unirtos.installToolchainCommand)",
+						"media": {
+							"image": "images/toolchain.png",
+							"altText": "Install Toolchain"
+						}
+					},
+					{
+						"id": "pythonStep",
+						"title": "Install Python",
+						"description": "Python is needed to run build scripts.\n[Install Python](command:unirtos.installPythonCommand)",
+            "media": {
+							"image": "images/python.png",
+							"altText": "Install Python from the official website"
+						}
+					},
+					{
+						"id": "gitStep",
+						"title": "Install git",
+						"description": "Git is needed to manage pull projects and demos.\n[Install Git](command:unirtos.installGitCommand)",
+						"media": {
+							"image": "images/git.png",
+							"altText": "Install Git from the official website"
+						}
+					},
+					{
+						"id": "driverStep",
+						"title": "Quectel Unirtos Driver",
+						"description": "Quectel (Y) driver is needed for AT port and other Quectel ports.\n[Install Driver](command:unirtos.installDriverCommand)",
+						"media": {
+							"image": "images/driver.png",
+							"altText": "Install Quectel UniRTOS Driver"
+						}
+					},
+					{
+						"id": "cliStep",
+						"title": "UniRTOS CLI",
+						"description": "Install UniRTOS CLI to do build and other commands smoothly.\n[Install UniRTOS CLI](command:unirtos.installCliCommand)",
+						"media": {
+							"image": "images/cli.png",
+							"altText": "Install UniRTOS CLI"
+						}
+					}
+				]
+			}    
+	]
   },
   "devDependencies": {
     "@types/node": "^18.0.0",

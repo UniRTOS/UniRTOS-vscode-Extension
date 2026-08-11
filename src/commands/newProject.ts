@@ -16,9 +16,12 @@ import * as fs from 'fs';
 import { runBasicEnvChecks } from './checkView';
 
 let newProjectPanel: vscode.WebviewPanel | undefined;
+let sdkVersionsCache: string[] | undefined = undefined;
 
 // get an array of SDK versions.
 export function getSdkVersions(): string[] {
+  if (sdkVersionsCache) return sdkVersionsCache; // use cached data
+
   try {
     ensureVenv();
   } catch (e) {
@@ -33,6 +36,7 @@ export function getSdkVersions(): string[] {
       const m = line.match(/^\s*-\s*(\S.*)$/);
       if (m) versions.push(m[1].trim());
     }
+    sdkVersionsCache = versions;
     return versions;
   } catch (e) {
     console.warn('Failed to get installed SDK versions:', e);

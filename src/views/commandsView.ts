@@ -39,13 +39,15 @@ export class CommandsViewProvider implements vscode.TreeDataProvider<CommandItem
     // children for each group
     if (element.label === 'Development') {
       const dev = [
+        new CommandItem('Welcome'),
         new CommandItem('New Project'),
         new CommandItem('New Project From Demo'),
         new CommandItem('Open Existing Project'),
-        new CommandItem('Build'),
         new CommandItem('Clean'),
+        new CommandItem('Build'),
         new CommandItem('Flash'),
         new CommandItem('Debug'),
+        
       ];
       return Promise.resolve(dev);
     }

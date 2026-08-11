@@ -1,3 +1,8 @@
+## 1.1.4
+- .Add Welcome and Walkthrough page
+- .Fix issue with Build env check
+- .Speed up loading modules and platforms
+
 ## 1.1.3
 - .Fetch sdk verions correctly
 - .Add Clean Build function

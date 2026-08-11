@@ -277,7 +277,9 @@ export async function promptAndRunExecutable(outDir: string): Promise<void> {
     channel.show(true);
 
     if (runRes.error || (runRes.status && runRes.status !== 0)) {
-      vscode.window.showErrorMessage('Executable failed: ' + (runRes.stderr || runRes.stdout || String(runRes.error)));
+      let err = runRes.stderr || runRes.stdout || String(runRes.error);
+      if (err == undefined || err.trim() === '') err = '';
+      vscode.window.showErrorMessage('Executable failed: ' + err);
     } else {
       vscode.window.showInformationMessage('Please restart you PC, UniRTOS toolchain installation finished!');
     }

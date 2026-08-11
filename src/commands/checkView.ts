@@ -81,6 +81,15 @@ function checkPython3(): boolean {
  * return result with reason
  */
 export function runBasicEnvChecks(context: vscode.ExtensionContext, skipWorkspaceCheck: boolean = false): { configPassed: boolean, reason: string } {
+  // check 1, workspace
+  if (!skipWorkspaceCheck) {
+    const workspaceOk = checkWorkspaceForSdk(context);
+    if (!workspaceOk) {
+      projectConfigPassed = { configPassed: false, reason: 'Workspace is not a UniRTOS SDK project!' };
+      return projectConfigPassed;
+    }
+  }
+
   if (projectConfigPassed.configPassed) {
     return { configPassed: true, reason: 'All checks passed' };
   }
