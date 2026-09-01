@@ -19,7 +19,7 @@
       <div class="content-max600">
         
         <div class="summary-row">
-          <div class="field-label">COM port:</div>
+          <div class="field-label">Port:</div>
           <select id="portSelect" class="port-select">
             <option value="">(scanning...)</option>
           </select>
@@ -52,30 +52,10 @@
     let selectedPkg = '';
     let preFlashCheck = false;
     let preFlashTimeoutId = null;
-    let uniRTOSState = undefined; // undefined = unknown, true = is UniRTOS project, false = not
 
     function triggerFlash() {
-      // First, ensure the current workspace is a UniRTOS SDK project
-      const errEl = document.getElementById('flashError');
-      if (typeof uniRTOSState !== 'undefined' && uniRTOSState === false) {
-        if (errEl) {
-          errEl.textContent = 'Workspace is not a UniRTOS SDK project!';
-          errEl.style.display = 'block';
-          setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 6000);
-        }
-        return;
-      }
-      if (typeof uniRTOSState === 'undefined') {
-        // request status from extension and ask user to retry after it's resolved
-        try { if (vscode) vscode.postMessage({ command: 'requestProjectStatus' }); } catch (e) {}
-        if (errEl) {
-          errEl.textContent = 'Checking workspace type — please try again in a moment.';
-          errEl.style.display = 'block';
-          setTimeout(() => { if (errEl) errEl.style.display = 'none'; }, 4000);
-        }
-        return;
-      }
       // Validate required inputs before asking the extension to flash
+      const errEl = document.getElementById('flashError');
       if (!selectedPort) {
         if (errEl) {
           errEl.textContent = 'Please select a COM port.';
@@ -129,11 +109,6 @@
 
     window.addEventListener('message', event => {
       const msg = event.data;
-      if (msg && msg.type === 'setUniRTOSProject') {
-        uniRTOSState = !!msg.value;
-        return;
-      }
-
       if (msg && msg.command === 'ports') {
         const select = document.getElementById('portSelect');
         if (!select) return;
@@ -217,6 +192,7 @@
     const refreshBtn = document.getElementById('refreshPorts');
     if (refreshBtn) refreshBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'requestPorts' }); });
     const selectFileBtn = document.getElementById('selectFileBtn');
+    
     if (selectFileBtn) selectFileBtn.addEventListener('click', () => { if (vscode) vscode.postMessage({ command: 'pickFile' }); });
     const flashBtn = document.getElementById('flashBtn');
     if (flashBtn) flashBtn.addEventListener('click', () => { triggerFlash(); });

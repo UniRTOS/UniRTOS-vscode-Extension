@@ -5,7 +5,6 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; script-src 'unsafe-inline' vscode-resource:; style-src 'unsafe-inline' vscode-resource:;">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>New UniRTOS Project</title>
-  
 </head>
 <body>
   <div id="header-root"></div>
@@ -40,6 +39,13 @@
       <option selected>loading....</option>
     </select>
   </div>
+  <div class="row">
+    <label>Mirror / Repository source</label>
+    <div class="source-switch" role="group" aria-label="Repository source">
+      <button type="button" class="source-option" data-source="github" aria-pressed="false">github</button>
+      <button type="button" class="source-option" data-source="gitee" aria-pressed="false">gitee</button>
+    </div>
+  </div>
 
   <div class="actions max-440">
     <button id="cancel">Cancel</button>
@@ -48,9 +54,30 @@
 
   <script>
     const vscode = acquireVsCodeApi();
-
     // request platforms data from extension
     vscode.postMessage({ type: 'ready' });
+
+    // mirror switch btn
+    let repositorySource = '';
+    const sourceOptions = document.querySelectorAll('.source-option');
+    sourceOptions.forEach(button => {
+      button.addEventListener('click', () => {
+        if (Array.from(sourceOptions).some(option => option.disabled)) return;
+        if (button.dataset.source === repositorySource) return;
+
+        repositorySource = button.dataset.source;
+        sourceOptions.forEach(option => {
+          option.setAttribute('aria-pressed', String(option === button));
+          option.disabled = true;
+        });
+
+        vscode.postMessage({ type: 'repositorySourceChanged', repositorySource: repositorySource });
+
+        setTimeout(() => {
+          sourceOptions.forEach(option => { option.disabled = false; });
+        }, 5000);
+      });
+    });
 
     document.getElementById('cancel').addEventListener('click', () => {
       vscode.postMessage({ type: 'cancel' });
@@ -80,12 +107,18 @@
         return;
       }
 
-      vscode.postMessage({ type: 'create', module: module, projectName: projectName, sdkVersion: sdkVersion, targetDir: targetDir });
+      vscode.postMessage({ type: 'create', module: module, projectName: projectName, sdkVersion: sdkVersion, targetDir: targetDir, repositorySource: repositorySource });
     });
 
     // accept messages from extension to populate UI
     window.addEventListener('message', event => {
       const msg = event.data;
+      if (msg.type === 'setRepositorySource') {
+        repositorySource = msg.repositorySource === 'gitee' ? 'gitee' : 'github';
+        sourceOptions.forEach(option => {
+          option.setAttribute('aria-pressed', String(option.dataset.source === repositorySource));
+        });
+      }
       // platform list not used in single-platform setup
       if (msg.type === 'setModules') {
         const moduleSel = document.getElementById('module');

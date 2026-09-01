@@ -43,7 +43,7 @@ export function ensureVenv(silent: boolean = false): boolean {
     fs.mkdirSync(path.dirname(venvPath), { recursive: true });
     if (!silent) vscode.window.showInformationMessage('Creating UniRTOS virtual environment...');
     execSync(`${launcher} -m venv "${venvPath}"`, { stdio: 'pipe' });
-    if (!silent) vscode.window.showInformationMessage('Installing UniRTOS cli...');
+    if (!silent) vscode.window.showInformationMessage('Initializing UniRTOS cli...');
     execSync(`"${pythonExe}" -m pip install --upgrade pip unirtos_cli`, { stdio: 'pipe' });
     return true;
   } catch (e) {

@@ -9,7 +9,8 @@ import {
   handlePlatformChanged,
   setupWebviewTheme,
   writeConfigFile,
-  openWorkspaceOrFolder
+  openWorkspaceOrFolder,
+  switchRepositorySource
 } from '../utils';
 import { injectHeaderIntoHtml } from './header';
 import * as fs from 'fs';
@@ -67,7 +68,6 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
   // Use 1 tab only, not multiple ones
   if (newProjectPanel) {
     newProjectPanel.reveal(vscode.ViewColumn.One);
-    try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed }); } catch (e) {}
     try { setupWebviewTheme(newProjectPanel); } catch (e) {}
     return true;
   }
@@ -97,14 +97,14 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
 
   panel.webview.html = html;
   
-  try { newProjectPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed }); } catch (e) {}
-
   try { setupWebviewTheme(panel); } catch (e) { /* ignore if helper missing */ }
 
   panel.webview.onDidReceiveMessage(async (msg) => {
     if (!msg || !msg.type) return;
     if (msg.type === 'ready') {
       sendPlatforms(panel.webview, platformKeys);
+      const mirrorSource = vscode.workspace.getConfiguration('unirtos').get<string>('mirrorSource', 'github');
+      panel.webview.postMessage({ type: 'setRepositorySource', repositorySource: mirrorSource });
       try {
         const sdks = getSdkVersions();
         panel.webview.postMessage({ type: 'setSdkVersions', versions: sdks });
@@ -129,6 +129,11 @@ export async function handleNewProject(labelsArr: string[], context: vscode.Exte
 
     if (msg.type === 'chooseDir') {
       await chooseDirectoryAndSet(panel.webview, 'Select folder to save SDK', 'path');
+      return;
+    }
+
+    if (msg.type === 'repositorySourceChanged') {
+      await switchRepositorySource(context, msg.repositorySource);
       return;
     }
 

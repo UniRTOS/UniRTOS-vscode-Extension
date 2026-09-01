@@ -187,12 +187,43 @@ select, button { width:80%; padding:8px; box-sizing: border-box; }
 .btn-120 { width:120px; }
 .select-full { width:100%; padding:8px; box-sizing:border-box; }
 
+.source-switch {
+  display: inline-flex;
+  width: 240px;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #f5f5f5;
+}
+
+.source-option {
+  flex: 1;
+  width: auto;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.source-option[aria-pressed="true"] {
+  background: #0052D9;
+  color: #fff;
+}
+
+.source-option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 /* Styles moved from new-project-demo.html */
 .field-control { width:100%; padding:8px; box-sizing:border-box; }
 .field-group { display:flex; gap:8px; width:100%; }
 .left-column { flex:1 1 0; min-width:0; max-width:520px }
 .right-column { width:260px }
-.keep-enabled { }
+.keep-enabled { /* Styles moved from new-project-demo.html */ }
 .checkbox-label { display:flex; align-items:center; gap:8px; font-weight:500; }
 .inline-relative { position:relative; display:inline-block; }
 .checkbox-input { width:auto; position:relative; z-index:1; }

@@ -10,7 +10,8 @@ import {
   setupWebviewTheme,
   readConfigFile,
   writeConfigFile,
-  openWorkspaceOrFolder
+  openWorkspaceOrFolder,
+  switchRepositorySource
 } from '../utils';
 import { runBasicEnvChecks } from './checkView';
 import { injectHeaderIntoHtml } from './header';
@@ -74,7 +75,6 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   if (newProjectDemoPanel) {
     newProjectDemoPanel.reveal(vscode.ViewColumn.One);
   
-    try { newProjectDemoPanel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed }); } catch (e) {}
     try { setupWebviewTheme(newProjectDemoPanel); } catch (e) {}
     return;
   }
@@ -110,7 +110,6 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
   panel.webview.html = html;
 
   try { setupWebviewTheme(panel); } catch (e) { /* ignore if helper missing */ }
-  panel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
 
   // read platforms config and expose platforms list
   const platforms = getPlatforms(context) || {};
@@ -125,7 +124,15 @@ export async function showNewProjectDemo(context: vscode.ExtensionContext) {
 
   panel.webview.onDidReceiveMessage(async (message) => {
     if (!message || !message.type) return;
+    if (message.type === 'repositorySourceChanged') {
+      await switchRepositorySource(context, message.repositorySource);
+      return;
+    }
+
     if (message.type === 'ready') {
+      const mirrorSource = vscode.workspace.getConfiguration('unirtos').get<string>('mirrorSource', 'github');
+      panel.webview.postMessage({ type: 'setRepositorySource', repositorySource: mirrorSource });
+
       sendPlatforms(panel.webview, platformKeys);
       // If there's only one platform, pre-send its modules so the webview can populate `module` without a platform selector
       try {

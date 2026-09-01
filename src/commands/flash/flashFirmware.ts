@@ -34,8 +34,13 @@ function findQuecCfgInRelease(context: vscode.ExtensionContext): string | null {
       const entries = fs.readdirSync(base);
       for (const e of entries) {
         try {
-          const candidate = path.join(base, e, 'quec_download_usb.ini');
-          if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) return candidate;
+          const releaseDir = path.join(base, e);
+          const configFile = path.join(releaseDir, 'quec_download_usb.ini');
+          if (fs.existsSync(configFile) && fs.statSync(configFile).isFile()) return configFile;
+
+          const packageFile = fs.readdirSync(releaseDir)
+            .find((file) => file.toLowerCase().endsWith('.hbinpkg'));
+          if (packageFile) return path.join(releaseDir, packageFile);
         } catch (err) {
           // ignore
         }
@@ -99,24 +104,27 @@ async function listAvailablePorts(output?: vscode.OutputChannel, context?: vscod
         ports.push({ label: label.trim(), value: value });
       }
       if (quectelFound && !atFound && !qdloaderFound) {
-        try {
-          const label = 'at port is missing, download the driver or check the readme';
-          const downloadBtn = 'Download';
-          const choice = await vscode.window.showWarningMessage(label, downloadBtn);
-          if (choice === downloadBtn) {
-            try {
-              if (!context) {
-                if (output) output.appendLine('[listAvailablePorts] context required to download driver');
-              } else {
-                await downloadAndInstall(QUECTEL_DRIVER_URL, context, { defaultDir: path.join(os.tmpdir(), 'quectel-driver-downloads'), title: 'Downloading Quectel driver', installTitle: 'Installing Quectel driver', autoRunInstaller: false });
+        // don't block returning the port list on the dialog response
+        (async () => {
+          try {
+            const label = 'at port is missing, download the driver or check the readme';
+            const downloadBtn = 'Download';
+            const choice = await vscode.window.showWarningMessage(label, downloadBtn);
+            if (choice === downloadBtn) {
+              try {
+                if (!context) {
+                  if (output) output.appendLine('[listAvailablePorts] context required to download driver');
+                } else {
+                  await downloadAndInstall(QUECTEL_DRIVER_URL, context, { defaultDir: path.join(os.tmpdir(), 'quectel-driver-downloads'), title: 'Downloading Quectel driver', installTitle: 'Installing Quectel driver', autoRunInstaller: false });
+                }
+              } catch (err) {
+                if (output) output.appendLine('[listAvailablePorts] failed to start download: ' + String(err));
               }
-            } catch (err) {
-              if (output) output.appendLine('[listAvailablePorts] failed to start download: ' + String(err));
             }
+          } catch (e) {
+            if (output) output.appendLine('[listAvailablePorts] at port is missing');
           }
-        } catch (e) {
-          if (output) output.appendLine('[listAvailablePorts] at port is missing');
-        }
+        })();
       }
     } else {
       if (output) output.appendLine('[listAvailablePorts] serialport list() not available; install @serialport/list or a compatible package');
@@ -326,12 +334,7 @@ function flashMessageHandler(panel: vscode.WebviewPanel, context: vscode.Extensi
     }
 
     if (msg.command === 'requestProjectStatus') {
-      try {
-        const basic = runBasicEnvChecks(context);
-        webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
-      } catch (e) {
-        webview.postMessage({ type: 'setUniRTOSProject', value: false });
-      }
+      try { runBasicEnvChecks(context); } catch (e) {}
       return;
     }
 
@@ -345,57 +348,12 @@ function flashMessageHandler(panel: vscode.WebviewPanel, context: vscode.Extensi
           canSelectMany: false,
           defaultUri
         });
+
         if (uris && uris.length > 0) {
-          let chosen = uris[0].fsPath;
-          let cfgPath = '';
-          let pkgPath = '';
-          try {
-            const dir = path.dirname(chosen);
-            const ext = path.extname(chosen).toLowerCase();
-            if (ext === '.hbinpkg') {
-              // user picked package; prefer finding a sibling .ini for flashing
-              pkgPath = chosen;
-              // look for quec_download_usb.ini first, then any .ini
-              const prefer = path.join(dir, 'quec_download_usb.ini');
-              if (fs.existsSync(prefer) && fs.statSync(prefer).isFile()) {
-                cfgPath = prefer;
-              } else {
-                const entries = fs.readdirSync(dir);
-                for (const e of entries) {
-                  if (e.toLowerCase().endsWith('.ini')) { cfgPath = path.join(dir, e); break; }
-                }
-              }
-            } else if (ext === '.ini') {
-              // user picked ini; use it for flashing and try to find sibling .hbinpkg
-              cfgPath = chosen;
-              const base = path.basename(chosen, path.extname(chosen));
-              const expected = path.join(dir, base + '.hbinpkg');
-              if (fs.existsSync(expected) && fs.statSync(expected).isFile()) {
-                pkgPath = expected;
-              } else {
-                const entries = fs.readdirSync(dir);
-                for (const e of entries) {
-                  if (e.toLowerCase().endsWith('.hbinpkg')) { pkgPath = path.join(dir, e); break; }
-                }
-              }
-            } else {
-              // neither .ini nor .hbinpkg: try to find .ini and .hbinpkg in same dir
-              const entries = fs.readdirSync(dir);
-              for (const e of entries) {
-                if (!cfgPath && e.toLowerCase().endsWith('.ini')) cfgPath = path.join(dir, e);
-                if (!pkgPath && e.toLowerCase().endsWith('.hbinpkg')) pkgPath = path.join(dir, e);
-                if (cfgPath && pkgPath) break;
-              }
-              // fallback: use chosen as cfgPath
-              if (!cfgPath) cfgPath = chosen;
-            }
-          } catch (e) {
-            // ignore
-            cfgPath = chosen;
-          }
-          webview.postMessage({ command: 'pickedFile', file: cfgPath || '', pkg: pkgPath || '' });
+          webview.postMessage({ command: 'pickedFile', file: path.dirname(uris[0].fsPath) || '', pkg: uris[0].fsPath || '' });
+          return;
         } else {
-          webview.postMessage({ command: 'pickedFile', file: '' , pkg: ''});
+          // User canceled the file picker, dont change the current file
         }
       } catch (e) {
         output.appendLine('[flashFirmware] pickFile handler error: ' + String(e));
@@ -471,18 +429,14 @@ export async function showFlashFirmware(context: vscode.ExtensionContext) {
   try { setupWebviewTheme(panel); } catch (e) { /* ignore if helper missing */ }
 
   // check if project is unirtos
-  const basic = runBasicEnvChecks(context);
-  panel.webview.postMessage({ type: 'setUniRTOSProject', value: basic.configPassed });
+  runBasicEnvChecks(context);
 
   // If the webview signals it's ready, resend theme and status to ensure styling is correct
   panel.webview.onDidReceiveMessage((msg) => {
     try {
       if (msg && msg.command === 'ready') {
         try { setupWebviewTheme(panel); } catch (e) {}
-        try {
-          const basicNow = runBasicEnvChecks(context);
-          panel.webview.postMessage({ type: 'setUniRTOSProject', value: basicNow.configPassed });
-        } catch (e) {}
+        try { runBasicEnvChecks(context); } catch (e) {}
       }
     } catch (e) {}
   });

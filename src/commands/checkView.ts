@@ -154,17 +154,6 @@ export function runBasicEnvChecks(context: vscode.ExtensionContext, skipWorkspac
     return projectConfigPassed;
   }
 
-  // // check 6, UniRTOS CLI module
-  // try {
-  //   const pyCliOk = checkUnirtosCli(context);
-  //   if (!pyCliOk) {
-  //     projectConfigPassed = { configPassed: false, reason: 'UniRTOS CLI not found;' };
-  //     return projectConfigPassed;
-  //   }
-  // } catch (e) {
-  //   // ignore unexpected errors from the Python CLI check and continue with other checks
-  // }
-
   projectConfigPassed = { configPassed: true, reason: 'All checks passed' };
   return projectConfigPassed;
 }

@@ -16,15 +16,6 @@
       const msg = event.data;
       if (!msg || !msg.type) return;
       switch (msg.type) {
-        case 'setUniRTOSProject': {
-          const val = !!msg.value;
-          const el = document.getElementById('unirtos-project-value');
-          if (el) {
-            el.textContent = val ? 'Yes' : 'No';
-            el.className = val ? 'status-yes' : 'status-no';
-          }
-          break;
-        }
         case 'setPageTitle': {
           const title = msg.value == null ? '' : String(msg.value);
           const el = document.getElementById('page-title-value');

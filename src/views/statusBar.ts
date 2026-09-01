@@ -1,13 +1,15 @@
 import * as vscode from 'vscode';
 import { runBuildScript } from '../commands/build';
 import { runCleanScript } from '../commands/clean';
+import { ensureVenv } from '../commands/pythonCli';
 import { showFlashFirmware } from '../commands/flash/flashFirmware';
-import { getPlatforms, readConfigFile, writeConfigFile } from '../utils';
+import { getPlatforms, readConfigFile, switchRepositorySource, writeConfigFile } from '../utils';
 
 const STATUS_BAR_MODULE_COMMAND = 'unirtos.statusBarModule';
 const STATUS_BAR_FLASH_COMMAND = 'unirtos.statusBarFlash';
 const STATUS_BAR_BUILD_COMMAND = 'unirtos.statusBarBuild';
 const STATUS_BAR_CLEAN_COMMAND = 'unirtos.statusBarClean';
+const STATUS_BAR_MIRROR_SOURCE_COMMAND = 'unirtos.statusBarMirrorSource';
 
 function registerModuleStatusBarItem(context: vscode.ExtensionContext): void {
 	const moduleStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 103);
@@ -56,8 +58,48 @@ function registerModuleStatusBarItem(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(moduleStatusBarItem);
 }
 
+function registerMirrorSourceStatusBarItem(context: vscode.ExtensionContext): void {
+	const mirrorSourceStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 104);
+	const updateMirrorSourceStatusBarItem = () => {
+		const mirrorSource = vscode.workspace.getConfiguration('unirtos').get<string>('mirrorSource', 'github');
+		mirrorSourceStatusBarItem.text = `$(git-branch) ${mirrorSource}`;
+		mirrorSourceStatusBarItem.tooltip = `UniRTOS mirror source: ${mirrorSource}`;
+	};
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand(STATUS_BAR_MIRROR_SOURCE_COMMAND, async () => {
+			const selected = await vscode.window.showQuickPick(
+				[
+					{ label: 'github', description: 'GitHub repository mirror' },
+					{ label: 'gitee', description: 'Gitee repository mirror' }
+				],
+				{ placeHolder: 'Select UniRTOS mirror source' }
+			);
+
+			if (selected) {
+				await switchRepositorySource(context, selected.label);
+				updateMirrorSourceStatusBarItem();
+			}
+		})
+	);
+	context.subscriptions.push(
+		vscode.workspace.onDidChangeConfiguration((event) => {
+			if (event.affectsConfiguration('unirtos.mirrorSource')) {
+				updateMirrorSourceStatusBarItem();
+			}
+		})
+	);
+
+	mirrorSourceStatusBarItem.command = STATUS_BAR_MIRROR_SOURCE_COMMAND;
+	updateMirrorSourceStatusBarItem();
+	mirrorSourceStatusBarItem.show();
+
+	context.subscriptions.push(mirrorSourceStatusBarItem);
+}
+
 export function registerStatusBarItems(context: vscode.ExtensionContext): void {
 	registerModuleStatusBarItem(context); // module icon
+	registerMirrorSourceStatusBarItem(context);
 
     // flash icon
 	context.subscriptions.push(

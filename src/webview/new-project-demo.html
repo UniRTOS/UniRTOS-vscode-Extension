@@ -41,6 +41,14 @@
       <option value="">— Select a demo project —</option>
     </select>
   </div>
+  <div class="row">
+    <label>Mirror / Repository source</label>
+    <div class="source-switch" role="group" aria-label="Repository source">
+      <button type="button" class="source-option" data-source="github" aria-pressed="false">github</button>
+      <button type="button" class="source-option" data-source="gitee" aria-pressed="false">gitee</button>
+    </div>
+  </div>
+
   <div class="actions max-440">
     <button id="cancel">Cancel</button>
     <button id="create">Create Demo Project</button>
@@ -53,6 +61,7 @@
       const select = document.getElementById('demo-projects');
       const localProjectContainer = document.querySelector('.use-current-workspace');
       const localProjectToggle = document.getElementById('toggle-current-workspace');
+      const targetDirInput = document.getElementById('targetDir');
 
       function setLocalProjectEnabled(enabled) {
         if (!localProjectContainer) {
@@ -78,27 +87,39 @@
       // notify extension this demo webview is ready to receive platforms/modules
       vscode.postMessage({ type: 'ready' });
 
-      // platform selection removed; extension will provide modules directly
+      // mirror switch btn
+      let repositorySource = '';
+      const sourceOptions = document.querySelectorAll('.source-option');
+      sourceOptions.forEach(button => {
+        button.addEventListener('click', () => {
+          if (Array.from(sourceOptions).some(option => option.disabled)) return;
+          if (button.dataset.source === repositorySource) return;
 
-      const chooseDirBtn = document.getElementById('choose-dir');
-      const targetDirInput = document.getElementById('targetDir');
-      if (chooseDirBtn) {
-        chooseDirBtn.addEventListener('click', () => {
-          vscode.postMessage({ type: 'chooseDir' });
-        });
-      }
+          repositorySource = button.dataset.source;
+          sourceOptions.forEach(option => {
+            option.setAttribute('aria-pressed', String(option === button));
+            option.disabled = true;
+          });
 
-      const cancelBtn = document.getElementById('cancel');
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => {
-          vscode.postMessage({ type: 'cancel' });
+          vscode.postMessage({ type: 'repositorySourceChanged', repositorySource: repositorySource });
+
+          setTimeout(() => {
+            sourceOptions.forEach(option => { option.disabled = false; });
+          }, 5000);
         });
-      }
+      });
+
+      document.getElementById('choose-dir').addEventListener('click', () => {
+        vscode.postMessage({ type: 'chooseDir' });
+      });
+
+      document.getElementById('cancel').addEventListener('click', () => {
+        vscode.postMessage({ type: 'cancel' });
+      });
 
       document.getElementById('create').addEventListener('click', () => {
         const selected = select ? select.value : null;
         const useCurrent = localProjectToggle ? localProjectToggle.checked : true;
-        const targetDirInput = document.getElementById('targetDir');
         const moduleSel = document.getElementById('module');
         const versionSel = document.getElementById('sdkVersion');
 
@@ -121,6 +142,13 @@
       window.addEventListener('message', event => {
         const msg = event.data;
         // platform list not used in single-platform setup
+
+        if (msg.type === 'setRepositorySource') {
+          repositorySource = msg.repositorySource === 'gitee' ? 'gitee' : 'github';
+          sourceOptions.forEach(option => {
+            option.setAttribute('aria-pressed', String(option.dataset.source === repositorySource));
+          });
+        }
 
         if (msg.type === 'setModules') {
           const moduleSel = document.getElementById('module');

@@ -1,3 +1,9 @@
+## 1.2.0
+- .Add mirror/git resource for unirtos cli (icon + button).
+- .Fix issue with Flashing + Ports
+- .Fix issue with hbinpkg file for flashing
+- .Update interface and info messaages
+
 ## 1.1.4
 - .Add Welcome and Walkthrough page
 - .Fix issue with Build env check

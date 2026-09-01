@@ -3,7 +3,7 @@
   "displayName": "UniRTOS",
   "icon": "images/icon.png",
   "publisher": "Quectel",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -w -p ."
@@ -38,6 +38,24 @@
           "name": "Commands"
         }
       ]
+    },
+    "configuration": {
+      "title": "UniRTOS",
+      "properties": {
+        "unirtos.mirrorSource": {
+          "type": "string",
+          "enum": [
+            "github",
+            "gitee"
+          ],
+          "enumDescriptions": [
+            "Use GitHub as the UniRTOS repository mirror.",
+            "Use Gitee as the UniRTOS repository mirror."
+          ],
+          "default": "github",
+          "description": "Repository mirror used by UniRTOS CLI commands."
+        }
+      }
     },
     "commands": [],
     "walkthroughs": [

@@ -3,6 +3,8 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { exec } from 'child_process';
 import { CONFIG_FILE } from './constants';
+import { runUnirtosCli } from './commands/pythonCli';
+import { runBasicEnvChecks } from './commands/checkView';
 
 let cachedPlatforms: Record<string, any> | undefined = undefined;
 
@@ -40,6 +42,31 @@ export function handlePlatformChanged(msgValue: unknown, platforms: Record<strin
 export const sendPlatforms = (webview: vscode.Webview, platformKeys: string[]) => {
     webview.postMessage({ type: 'setPlatforms', platforms: platformKeys });
 };
+
+export async function switchRepositorySource(context: vscode.ExtensionContext, value: unknown): Promise<boolean> {
+    if (value !== 'github' && value !== 'gitee') return false;
+
+    const basic = runBasicEnvChecks(context, true);
+    if (!basic.configPassed) {
+        vscode.window.showErrorMessage((basic.reason || 'unknown') + ' Environment checks failed.');
+        return false;
+    }
+
+    const repositorySource = value;
+    try {
+        await vscode.workspace.getConfiguration('unirtos').update(
+            'mirrorSource',
+            repositorySource,
+            vscode.ConfigurationTarget.Global
+        );
+        runUnirtosCli(['git-mirror', repositorySource]);
+        vscode.window.showInformationMessage(`Repository source switched to ${repositorySource}.`);
+        return true;
+    } catch (e) {
+        vscode.window.showErrorMessage(`Failed to switch repository source to ${repositorySource}: ${e}`);
+        return false;
+    }
+}
 
 export function setupWebviewTheme(panel: vscode.WebviewPanel) {
     function sendTheme() {
